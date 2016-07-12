@@ -19,4 +19,5 @@ Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 #@end-no-lib-strip@
 
 core.lua
+gold.lua
 currency.lua
