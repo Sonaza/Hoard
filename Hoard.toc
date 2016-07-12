@@ -1,0 +1,22 @@
+## Interface: 60200
+## Title: Hoard
+## Notes: Character Gold Display and Tracker
+## Version: 1.0.0
+## Author: Sonaza
+## OptionalDeps: Ace3, LibDataBroker-1.1
+## SavedVariables: HoardDB
+## DefaultState: enabled
+
+#@no-lib-strip@
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\AceEvent-3.0\AceEvent-3.0.xml
+libs\AceHook-3.0\AceHook-3.0.xml
+libs\LibQTip-1.0\LibQTip-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+#@end-no-lib-strip@
+
+core.lua
+currency.lua
