@@ -21,9 +21,12 @@ SHARED[2] = DATA;
 
 DATA.ICON_ADDON         = "Interface\\Icons\\INV_Misc_Coin_17";
 
+DATA.ICON_PATTERN_10    = "|T%s:10:10:0:0|t";
 DATA.ICON_PATTERN_12    = "|T%s:12:12:0:0|t";
+DATA.ICON_PATTERN_14    = "|T%s:14:14:0:0|t";
+DATA.ICON_PATTERN_16    = "|T%s:16:16:0:0|t";
 DATA.TEX_ADDON_ICON     = DATA.ICON_PATTERN_12:format(DATA.ICON_ADDON);
--- DATA.TEX_EXCLAMATION = [[|TInterface\OptionsFrame\UI-OptionsFrame-NewFeatureIcon:0:0:0:1|t]];
+-- DATA.TEX_EXCLAMATION    = [[|TInterface\OptionsFrame\UI-OptionsFrame-NewFeatureIcon:0:0:0:1|t]];
 
 -- Shared enums
 local ENUM = {}
@@ -33,58 +36,87 @@ ENUM.DISPLAY_PLAYER_GOLD  = 1;
 ENUM.DISPLAY_REALM_GOLD   = 2;
 
 ENUM.FACTION_ICONS = {
-	Alliance = [[|TInterface\BattlefieldFrame\Battleground-Alliance:16:16:0:0:32:32:4:26:4:27|t ]],
-	Horde = [[|TInterface\BattlefieldFrame\Battleground-Horde:16:16:0:0:32:32:5:25:5:26|t ]],
+	Alliance  = [[|TInterface\BattlefieldFrame\Battleground-Alliance:16:16:0:0:32:32:4:26:4:27|t ]],
+	Horde     = [[|TInterface\BattlefieldFrame\Battleground-Horde:16:16:0:0:32:32:5:25:5:26|t ]],
 }
 
-local function GetPlayerName()
+function Addon:GetPlayerName()
 	local n, s = UnitFullName("player");
 	return table.concat({n, s}, "-");
 end
 
-local function GetConnectedRealmsName()
-	local combinedRealmName = "";
+function Addon:GetHomeRealm()
+	return string.gsub(GetRealmName(), " ", "")
+end
+
+function Addon:GetConnectedRealms()
 	local realms = GetAutoCompleteRealms();
 	
 	if(realms) then
-		combinedRealmName = table.concat(realms, "-");
+		return realms;
 	else
-		combinedRealmName = string.gsub(GetRealmName(), " ", "");
+		return { Addon:GetHomeRealm() };
 	end
-	
-	return combinedRealmName;
+end
+
+function Addon:GetConnectedRealmsName()
+	return table.concat(Addon:GetConnectedRealms(), "-");
 end
 
 local CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME;
 function Addon:GetPlayerInformation()
 	if(not CONNECTED_REALM or not HOME_REALM or not PLAYER_FACTION or not PLAYER_NAME) then
-		CONNECTED_REALM  = GetConnectedRealmsName();
-		HOME_REALM       = string.gsub(GetRealmName(), " ", "");
+		CONNECTED_REALM  = Addon:GetConnectedRealmsName();
+		HOME_REALM       = Addon:GetHomeRealm();
 		PLAYER_FACTION   = UnitFactionGroup("player");
-		PLAYER_NAME      = GetPlayerName();
+		PLAYER_NAME      = Addon:GetPlayerName();
 	end
 	
 	return CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME;
 end
-
-Addon.Modules = {};
 
 function Addon:OnEnable()
 	Addon:RegisterEvent("CVAR_UPDATE");
 	
 	local defaults = {
 		global = {
-			displayHint       = true,
+			displayHint         = true,
 			
-			displayMode       = ENUM.DISPLAY_PLAYER_GOLD,
-			onlyGold          = false,
-			shortDisplay      = false,
-			literalEnabled    = false,
+			-- Gold settings
+			displayMode         = ENUM.DISPLAY_PLAYER_GOLD,
+			onlyGold            = false,
+			shortDisplay        = false,
+			literalEnabled      = false,
 			
-			showToday         = true,
-			showYesterday     = true,
-			showWeek          = true,
-			onlyHistoryTotals = false,
+			showToday           = true,
+			showYesterday       = true,
+			showWeek            = true,
+			onlyHistoryTotals   = false,
+			
+			-- Currency settings
+			compactCurrencies   = false,
+			hideUnused          = true,
+			
+			currencies = {
+				global = {
+					watched = {
+						[1]		= false,
+						[2]		= false,
+						[3]		= false,
+						[4]		= false,
+					},
+				},
+				characters = {
+					["*"] = {
+						showPersonal = false,
+						watched = nil,
+					},
+				}
+			},
+			
+			realmAtlas = {
+				["*"] = {},
+			},
 			
 			realms = {
 				["*"] = { -- Connected Realms
@@ -108,12 +140,21 @@ function Addon:OnEnable()
 				},
 			},
 		},
+		
+		char = {
+			useGlobalSettings = false,
+			currencies = {},
+		},
 	};
 	
 	self.db = AceDB:New("HoardDB", defaults);
 	
 	Addon:InitializeModules();
 end
+
+-------------------------------------------------------------------------
+
+Addon.Modules = {};
 
 function Addon:RegisterModule(name, data)
 	if(Addon.Modules[name]) then return false end
@@ -140,6 +181,8 @@ function Addon:UpdateModules()
 		module:Update();
 	end
 end
+
+-------------------------------------------------------------------------
 
 function Addon:GetAnchors(frame)
 	local B, T = "BOTTOM", "TOP";
@@ -170,6 +213,8 @@ function Addon:OpenContextMenu(frame, menudata)
 	DropDownList1:SetClampedToScreen(true);
 end
 
+-------------------------------------------------------------------------
+
 function Addon:CVAR_UPDATE(event, cvar, new_value)
 	if(cvar == "USE_COLORBLIND_MODE") then
 		CloseMenus();
@@ -177,18 +222,39 @@ function Addon:CVAR_UPDATE(event, cvar, new_value)
 	end
 end
 
+-------------------------------------------------------------------------
+
 local CLASS_COLOR = '|cff%02x%02x%02x';
 function Addon:GetClassColor(class)
 	local color = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class or 'PRIEST'];
 	return CLASS_COLOR:format(color.r * 255, color.g * 255, color.b * 255) .. "%s|r";
 end
 
+--------------------------------------
+
 function Addon:GetRealmsData()
 	return self.db.global.realms;
 end
+
+local REALM_IDENTIFIER;
+function Addon:GetRealmIdentifier()
+	if(REALM_IDENTIFIER) then return REALM_IDENTIFIER end
 	
+	for identifier, realms in pairs(self.db.global.realmAtlas) do
+		for _, realm in ipairs(realms) do
+			if(realm == HOME_REALM) then
+				REALM_IDENTIFIER = identifier;
+				return REALM_IDENTIFIER;
+			end
+		end
+	end
+	
+	tinsert(self.db.global.realmAtlas, Addon:GetConnectedRealms());
+	return Addon:GetRealmIdentifier();
+end
+
 function Addon:GetConnectedRealmData(faction)
-	local realmData = Addon:GetRealmsData()[GetConnectedRealmsName()];
+	local realmData = Addon:GetRealmsData()[Addon:GetConnectedRealmsName()];
 	
 	if(faction ~= false) then
 		return realmData[faction or PLAYER_FACTION];
@@ -211,13 +277,15 @@ function Addon:GetPlayerData()
 	return player;
 end
 
-function Addon:GetStatsData()
+function Addon:GetStatsData(realm)
 	return Addon:GetConnectedRealmData().stats;
 end
 
 function Addon:GetArchive()
 	return Addon:GetConnectedRealmData().archived;
 end
+
+--------------------------------------
 
 function Addon:GetDate(days_diff)
 	if(not days_diff) then days_diff = 0 end

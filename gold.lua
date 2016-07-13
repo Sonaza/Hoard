@@ -20,7 +20,11 @@ local TEX_ARROW_PROFIT   = DATA.ICON_PATTERN_12:format(ICON_ARROW_PROFIT);
 local TEX_ARROW_LOSS     = DATA.ICON_PATTERN_12:format(ICON_ARROW_LOSS);
 local TEX_MAIL_ICON      = DATA.ICON_PATTERN_12:format(ICON_MAIL);
 
+---------------------------------------------------
+
 local module = {};
+Addon:RegisterModule("gold", module);
+
 module.name = "Hoard Gold";
 module.settings = {
 	type = "data source",
@@ -30,14 +34,30 @@ module.settings = {
 	OnClick = function(frame, button)
 		module:OnClick(frame, button);
 	end,
-	OnTooltipShow = function(tooltip)
-		if not tooltip or not tooltip.AddLine then return end
-		module:OnTooltipShow(tooltip);
+	-- OnTooltipShow = function(tooltip)
+	-- 	if not tooltip or not tooltip.AddLine then return end
+	-- 	module:OnTooltipShow(tooltip);
+	-- end,
+	-- OnLeave = function(frame)
+	-- 	module:OnLeave(frame);
+	-- end,
+	
+	OnEnter = function(frame)
+		module.tooltip = LibQTip:Acquire("HoardGoldTooltip", 2, "LEFT", "RIGHT");
+		module:OnEnter(frame, module.tooltip);
 	end,
 	OnLeave = function(frame)
-		module:OnLeave(frame);
+		module:OnLeave(frame, module.tooltip);
+		
+		if(module.tooltip) then
+			LibQTip:Release(module.tooltip);
+			module.tooltip = nil;
+		end
 	end,
-}
+};
+
+---------------------------------------------------
+-- Module methods
 
 function module:Initialize()
 	Addon:RegisterEvent("NEUTRAL_FACTION_SELECT_RESULT");
@@ -66,52 +86,57 @@ function module:OnClick(frame, button)
 	if(button == "LeftButton") then
 		
 	elseif(button == "RightButton") then
-		GameTooltip:Hide();
+		module.tooltip:Hide();
 		Addon:OpenContextMenu(frame, module:GetContextMenuData());
 	end
 end
 
-function module:OnTooltipShow(tooltip)
-	tooltip:AddLine(DATA.TEX_ADDON_ICON .. " Hoard")
+function module:OnEnter(frame, tooltip)
+	tooltip:Clear();
 	
-	tooltip:AddDoubleLine("Session", Addon:GetCorrectCoinString(Addon.SessionData.total), nil, nil, nil, Addon:GetTotalColor(Addon.SessionData.total));
-	tooltip:AddDoubleLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(Addon.SessionData.gained), 1, 1, 1, 1, 1, 1);
-	tooltip:AddDoubleLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(Addon.SessionData.lost), 1, 1, 1, 1, 1, 1);
+	tooltip:AddHeader(DATA.TEX_ADDON_ICON .. " |cffffdd00Hoard Gold|r")
+	
+	tooltip:AddLine("|cffffdd00Session|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(Addon.SessionData.total), Addon:GetCorrectCoinString(Addon.SessionData.total)));
+	tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(Addon.SessionData.gained));
+	tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(Addon.SessionData.lost));
 	tooltip:AddLine(" ")
 	
 	if(PLAYER_FACTION ~= "Neutral") then
 		local history = Addon:GetMoneyHistory();
 		
 		if(Addon.db.global.showToday) then
-			tooltip:AddDoubleLine("Today", Addon:GetCorrectCoinString(history.today.total), nil, nil, nil, Addon:GetTotalColor(history.today.total));
+			tooltip:AddLine("|cffffdd00Today|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.today.total), Addon:GetCorrectCoinString(history.today.total)));
+			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddDoubleLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.today.gained), 1, 1, 1, 1, 1, 1);
-				tooltip:AddDoubleLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.today.lost), 1, 1, 1, 1, 1, 1);
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(history.today.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(history.today.lost));
 				tooltip:AddLine(" ");
 			end
 		end
 		
 		if(Addon.db.global.showYesterday) then
-			tooltip:AddDoubleLine("Yesterday", Addon:GetCorrectCoinString(history.yesterday.total), nil, nil, nil, Addon:GetTotalColor(history.yesterday.total));
+			tooltip:AddLine("|cffffdd00Yesterday|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.yesterday.total), Addon:GetCorrectCoinString(history.yesterday.total)));
+			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddDoubleLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.yesterday.gained), 1, 1, 1, 1, 1, 1);
-				tooltip:AddDoubleLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.yesterday.lost), 1, 1, 1, 1, 1, 1);
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(history.yesterday.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(history.yesterday.lost));
 				tooltip:AddLine(" ");
 			end
 		end
 		
 		if(Addon.db.global.showWeek) then
-			tooltip:AddDoubleLine("Past Week", Addon:GetCorrectCoinString(history.week_total.total), nil, nil, nil, Addon:GetTotalColor(history.week_total.total));
+			tooltip:AddLine("|cffffdd00Past Week|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.week_total.total), Addon:GetCorrectCoinString(history.week_total.total)));
+			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddDoubleLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.week_total.gained), 1, 1, 1, 1, 1, 1);
-				tooltip:AddDoubleLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.week_total.lost), 1, 1, 1, 1, 1, 1);
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(history.week_total.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(history.week_total.lost));
 				tooltip:AddLine(" ");
 			end
 		end
 		
 		if(Addon.db.global.onlyHistoryTotals) then tooltip:AddLine(" "); end
 	else
-		tooltip:AddLine("Choose Addon faction to view gold history");
+		tooltip:AddLine("Choose faction to view gold history");
 		tooltip:AddLine(" ");
 	end
 	
@@ -139,21 +164,26 @@ function module:OnTooltipShow(tooltip)
 		
 		if(#list_characters > 1) then
 			tooltip:AddLine(" ")
-			tooltip:AddDoubleLine("Total", Addon:GetCorrectCoinString(totalGold), nil, nil, nil, 1, 1, 1);
+			tooltip:AddLine("|cffffdd00Total|r", Addon:GetCorrectCoinString(totalGold));
 		end
 	end
 	
 	if(Addon.db.global.displayHint) then
 		tooltip:AddLine(" ")
-		-- tooltip:AddDoubleLine("Hold Shift", "|cffffffffDisplay all characters|r");
-		tooltip:AddDoubleLine("Right-Click", "|cffffffffOpen options menu|r");
+		tooltip:AddLine("|cffffdd00Right-Click|r", "|cffffffffOpen options menu|r");
 	end
 	
-	Addon.TooltipOpen = true;
+	tooltip:SetAutoHideDelay(0.01, frame);
+	
+	local point, relative = Addon:GetAnchors(frame);
+	tooltip:ClearAllPoints();
+	tooltip:SetPoint(point, frame, relative, 0, 0);
+	
+	tooltip:Show();
 end
 
 function module:OnLeave(frame)
-	Addon.TooltipOpen = false;
+	
 end
 
 function module:GetContextMenuData()
@@ -197,36 +227,36 @@ function module:GetContextMenuData()
 	
 	local contextMenuData = {
 		{
-			text = DATA.DATA.TEX_ADDON_ICON .. " Hoard Options", isTitle = true, notCheckable = true,
+			text = DATA.TEX_ADDON_ICON .. " Hoard Gold Options", isTitle = true, notCheckable = true,
 		},
 		{
 			text = "Display character gold",
-			func = function() self.db.global.displayMode = ENUM.DISPLAY_PLAYER_GOLD; module:Update(); end,
-			checked = function() return self.db.global.displayMode == ENUM.DISPLAY_PLAYER_GOLD; end,
+			func = function() Addon.db.global.displayMode = ENUM.DISPLAY_PLAYER_GOLD; module:Update(); end,
+			checked = function() return Addon.db.global.displayMode == ENUM.DISPLAY_PLAYER_GOLD; end,
 		},
 		{
 			text = "Display total realm gold",
-			func = function() self.db.global.displayMode = ENUM.DISPLAY_REALM_GOLD; module:Update(); end,
-			checked = function() return self.db.global.displayMode == ENUM.DISPLAY_REALM_GOLD; end,
+			func = function() Addon.db.global.displayMode = ENUM.DISPLAY_REALM_GOLD; module:Update(); end,
+			checked = function() return Addon.db.global.displayMode == ENUM.DISPLAY_REALM_GOLD; end,
 		},
 		{
 			text = "|cffffffffDisplay values using letters|r" .. colorBlindModeText,
-			func = function() self.db.global.literalEnabled = not self.db.global.literalEnabled; module:Update(); end,
-			checked = function() return self.db.global.literalEnabled or colorBlindModeEnabled; end,
+			func = function() Addon.db.global.literalEnabled = not Addon.db.global.literalEnabled; module:Update(); end,
+			checked = function() return Addon.db.global.literalEnabled or colorBlindModeEnabled; end,
 			isNotRadio = true,
 			disabled = colorBlindModeEnabled,
 		},
 		{
 			text = "Shortened display",
-			func = function() self.db.global.shortDisplay = not self.db.global.shortDisplay; module:Update(); end,
-			checked = function() return self.db.global.shortDisplay; end,
+			func = function() Addon.db.global.shortDisplay = not Addon.db.global.shortDisplay; module:Update(); end,
+			checked = function() return Addon.db.global.shortDisplay; end,
 			isNotRadio = true,
 			tooltip = "hai",
 		},
 		{
 			text = "Only show gold",
-			func = function() self.db.global.onlyGold = not self.db.global.onlyGold; module:Update(); end,
-			checked = function() return self.db.global.onlyGold; end,
+			func = function() Addon.db.global.onlyGold = not Addon.db.global.onlyGold; module:Update(); end,
+			checked = function() return Addon.db.global.onlyGold; end,
 			isNotRadio = true,
 		},
 		{
@@ -237,26 +267,26 @@ function module:GetContextMenuData()
 		},
 		{
 			text = "Show today",
-			func = function() self.db.global.showToday = not self.db.global.showToday; end,
-			checked = function() return self.db.global.showToday; end,
+			func = function() Addon.db.global.showToday = not Addon.db.global.showToday; end,
+			checked = function() return Addon.db.global.showToday; end,
 			isNotRadio = true,
 		},
 		{
 			text = "Show yesterday",
-			func = function() self.db.global.showYesterday = not self.db.global.showYesterday; end,
-			checked = function() return self.db.global.showYesterday; end,
+			func = function() Addon.db.global.showYesterday = not Addon.db.global.showYesterday; end,
+			checked = function() return Addon.db.global.showYesterday; end,
 			isNotRadio = true,
 		},
 		{
 			text = "Show past week",
-			func = function() self.db.global.showWeek = not self.db.global.showWeek; end,
-			checked = function() return self.db.global.showWeek; end,
+			func = function() Addon.db.global.showWeek = not Addon.db.global.showWeek; end,
+			checked = function() return Addon.db.global.showWeek; end,
 			isNotRadio = true,
 		},
 		{
 			text = "Only display totals",
-			func = function() self.db.global.onlyHistoryTotals = not self.db.global.onlyHistoryTotals; end,
-			checked = function() return self.db.global.onlyHistoryTotals; end,
+			func = function() Addon.db.global.onlyHistoryTotals = not Addon.db.global.onlyHistoryTotals; end,
+			checked = function() return Addon.db.global.onlyHistoryTotals; end,
 			isNotRadio = true,
 		},
 		{
@@ -267,8 +297,8 @@ function module:GetContextMenuData()
 		},
 		{
 			text = "Display tooltip hint",
-			func = function() self.db.global.displayHint = not self.db.global.displayHint; end,
-			checked = function() return self.db.global.displayHint; end,
+			func = function() Addon.db.global.displayHint = not Addon.db.global.displayHint; end,
+			checked = function() return Addon.db.global.displayHint; end,
 			isNotRadio = true,
 		},
 		{
@@ -307,14 +337,14 @@ function module:GetText()
 	elseif(useLiteralMode) then
 		return Addon:GetLiteralCoinString(displayGold);
 	else
-		return GetCoinTextureString(displayGold, 12);
+		return Addon:GetCoinTextureString(displayGold);
 	end
 end
 
 ---------------------------------------------------
 -- Utility methods used by module
 
-function Addon:AddMoneyRecord(money_diff, addToSession)
+function Addon:AddMoneyRecord(money_diff)
 	if(money_diff == nil or money_diff == 0) then return end
 	if(PLAYER_FACTION == "Neutral") then return end
 	
@@ -412,9 +442,10 @@ function Addon:SetTooltip(tooltip, name, data)
 		mail_icon = " " .. DATA.TEX_MAIL_ICON;
 	end
 	
-	tooltip:AddDoubleLine(
+	tooltip:AddLine(
 		string.format("%s%s%s", faction_icon, string.format(color, name), mail_icon),
-		Addon:GetCorrectCoinString(data.gold + data.inMail), nil, nil, nil, 1, 1, 1);
+		Addon:GetCorrectCoinString(data.gold + data.inMail)
+	);
 end
 
 function Addon:GetTotalColor(total)
@@ -429,6 +460,11 @@ function Addon:GetTotalColor(total)
 	return 1, 1, 1;
 end
 
+function Addon:GetTotalColorHex(total)
+	local r, g, b = Addon:GetTotalColor(total);
+	return string.format("%x%x%x", r * 255, g * 255, b * 255)
+end
+
 function Addon:NormalizeCoinValue(coin)
 	if(coin == nil) then return 0 end
 	coin = tonumber(coin) or 0;
@@ -441,13 +477,13 @@ function Addon:GetCorrectCoinString(coin)
 	local prefix = "";
 	if(sign == -1) then prefix = "-" end
 	
-	local useLiteralMode = self.db.global.literalEnabled or GetCVar("colorblindMode") == "1";
+	local useLiteralMode = Addon.db.global.literalEnabled or GetCVar("colorblindMode") == "1";
 	
 	if(useLiteralMode) then
 		return prefix .. Addon:GetLiteralCoinString(coin);
 	end
 	
-	return prefix .. strtrim(GetCoinTextureString(coin, 12)) .. "  ";
+	return prefix .. strtrim(Addon:GetCoinTextureString(coin)) .. "  ";
 end
 
 function Addon:GetLiteralCoinString(coin)
@@ -457,18 +493,46 @@ function Addon:GetLiteralCoinString(coin)
 	local silver = math.floor((coin % 10000) / 100);
 	local gold 	 = math.floor(coin / 10000);
 	
-	local GOLD 	 = "%d|cfff0c80bg|r ";
+	local GOLD 	 = "%s|cfff0c80bg|r ";
 	local SILVER = "%d|cffc7c7c7s|r ";
 	local COPPER = "%d|cffe67f35c|r";
 	
 	local result = "";
 	
 	if(gold > 0) then
-		result = string.format("%s%s", result, GOLD:format(gold));
+		result = string.format("%s%s", result, GOLD:format(BreakUpLargeNumbers(gold)));
 	end
 	
 	if(silver > 0) then
 		result = string.format("%s%s", result, SILVER:format(silver));
+	end
+	
+	if(copper > 0 or (gold == 0 and silver == 0)) then
+		result = string.format("%s%s", result, COPPER:format(copper));
+	end
+	
+	return strtrim(result);
+end
+
+function Addon:GetCoinTextureString(coin)
+	local coin, sign = Addon:NormalizeCoinValue(coin)
+	
+	local copper = coin % 100;
+	local silver = math.floor((coin % 10000) / 100);
+	local gold 	 = math.floor(coin / 10000);
+	
+	local GOLD 	 = "%s|TInterface\\MoneyFrame\\UI-GoldIcon:12:12:2:0|t";
+	local SILVER = "%d|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:2:0|t";
+	local COPPER = "%d|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:2:0|t";
+	
+	local result = "";
+	
+	if(gold > 0) then
+		result = string.format("%s%s ", result, GOLD:format(BreakUpLargeNumbers(gold)));
+	end
+	
+	if(silver > 0) then
+		result = string.format("%s%s ", result, SILVER:format(silver));
 	end
 	
 	if(copper > 0 or (gold == 0 and silver == 0)) then
@@ -650,5 +714,3 @@ function Addon:MAIL_SEND_SUCCESS()
 	
 	Addon.MailMoney = 0;
 end
-
-Addon:RegisterModule("gold", module);

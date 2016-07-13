@@ -2,22 +2,413 @@
 -- Hoard by Sonaza
 
 local ADDON_NAME, SHARED = ...;
+local _;
 
-local Addon, Libs = unpack(SHARED);
+local Addon, DATA, ENUM = unpack(SHARED);
 
-local LibDataBroker, LibQTip = unpack(Libs);
+local LibDataBroker = LibStub("LibDataBroker-1.1");
+local LibQTip = LibStub("LibQTip-1.0");
+local AceDB = LibStub("AceDB-3.0");
+
+local CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME;
+
+local MODULE_ICON       = "Interface\\Icons\\Ability_Fomor_Boss_Rune_Yellow";
+local TEX_MODULE_ICON   = DATA.ICON_PATTERN_12:format(MODULE_ICON);
+
+local ICON_ARROW_PROFIT = "Interface\\AddOns\\Hoard\\media\\profit_arrow.tga";
+local ICON_ARROW_LOSS   = "Interface\\AddOns\\Hoard\\media\\loss_arrow.tga";
+local ICON_MAIL         = "Interface\\AddOns\\Hoard\\media\\mail_icon.tga";
+
+local TEX_ARROW_PROFIT  = DATA.ICON_PATTERN_12:format(ICON_ARROW_PROFIT);
+local TEX_ARROW_LOSS    = DATA.ICON_PATTERN_12:format(ICON_ARROW_LOSS);
+local TEX_MAIL_ICON     = DATA.ICON_PATTERN_12:format(ICON_MAIL);
+
+---------------------------------------------------
 
 local module = {};
+Addon:RegisterModule("currency", module);
 
 module.name = "Hoard Currency";
--- module.dataobject = 
+module.settings = {
+	type = "data source",
+	label = "Hoard Currency",
+	text = "",
+	icon = MODULE_ICON,
+	OnClick = function(frame, button)
+		module:OnClick(frame, button);
+	end,
+	OnEnter = function(frame)
+		module.tooltip = LibQTip:Acquire("HoardCurrencyTooltip", 2, "LEFT", "RIGHT");
+		module.tooltip:SetFrameStrata("TOOLTIP");
+		module.tooltip:EnableMouse(true);
+		module:OnEnter(frame, module.tooltip);
+	end,
+	OnLeave = function(frame)
+		module:OnLeave(frame, module.tooltip);
+		
+		-- if(module.tooltip) then
+		-- 	LibQTip:Release(module.tooltip);
+		-- 	module.tooltip = nil;
+		-- end
+	end,
+};
 
-function module:initialize()
+---------------------------------------------------
+-- Module methods
+
+function module:Initialize()
+	Addon:RegisterEvent("CURRENCY_DISPLAY_UPDATE");
+	Addon:RegisterEvent("ZONE_CHANGED");
+	Addon:RegisterEvent("ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED");
+	
+	CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME = Addon:GetPlayerInformation();
+end
+
+function module:OnClick(frame, button)
+	if(button == "LeftButton") then
+		securecall("ToggleCharacter", "TokenFrame");
+		
+	elseif(button == "RightButton") then
+		module.tooltip:Hide();
+		Addon:OpenContextMenu(frame, module:GetContextMenuData());
+	end
+end
+
+function module:OnEnter(frame, tooltip)
+	tooltip:Clear();
+	
+	tooltip:AddHeader(TEX_MODULE_ICON .. " |cffffdd00Hoard Currencies|r");
+	
+	local point, relative = Addon:GetAnchors(frame);
+	
+	local numCurrencies = GetCurrencyListSize();
+	
+	for index = 1, numCurrencies do
+		local name, isHeader, isExpanded, isUnused, isWatched, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount, unknown = GetCurrencyListInfo(index);
+		
+		if(isUnused and Addon.db.global.hideUnused) then break end
+		
+		if(isHeader) then
+			if(not Addon.db.global.compactCurrencies) then 
+				tooltip:AddLine(" ");
+				
+				local lineIndex = tooltip:AddLine("|cffffdd00" .. name .. "|r");
+				
+				tooltip:SetLineScript(lineIndex, "OnMouseUp", function(self, _, button)
+					ExpandCurrencyList(index, isExpanded and 0 or 1);
+					module:OnEnter(frame, module.tooltip);
+				end);
+				
+				if(isExpanded) then
+					tooltip:AddSeparator();
+				end
+			end
+		else
+			local fullColor = "";
+			if(count == maximum and maximum ~= 0) then
+				fullColor = "|cffff8624";
+			end
+			
+			local lineIndex = tooltip:AddLine(
+				string.format("|cfffffacd%s|r", name),
+				string.format("%s%s|r  %s", fullColor, BreakUpLargeNumbers(count), DATA.ICON_PATTERN_16:format(icon))
+			);
+			
+			tooltip:SetLineScript(lineIndex, "OnEnter", function(self)
+				GameTooltip:SetOwner(tooltip, "ANCHOR_NONE");
+				GameTooltip:SetPoint(point, tooltip, relative, 0, 0);
+				
+				GameTooltip:SetCurrencyToken(index);
+				GameTooltip:AddLine(" ");
+				
+				if(not isUnused) then
+					GameTooltip:AddLine("|cff00ff00Shift Right-Click to mark as unused|r");
+				else
+					GameTooltip:AddLine("|cff00ff00Shift Right-Click to remove unused|r");
+				end
+				
+				GameTooltip:Show();
+			end);
+			
+			tooltip:SetLineScript(lineIndex, "OnLeave", function(self)
+				GameTooltip:Hide();
+			end);
+				
+			tooltip:SetLineScript(lineIndex, "OnMouseUp", function(self, _, button)
+				if(button == "RightButton" and IsShiftKeyDown()) then
+					SetCurrencyUnused(index, isUnused and 0 or 1);
+					module:OnEnter(frame, module.tooltip);
+				end
+			end);
+		end
+	end
+	
+	if(Addon.db.global.displayHint) then
+		tooltip:AddLine(" ");
+		tooltip:AddLine("|cffffdd00Left-Click|r", "|cffffffffOpen currency menu|r");
+		tooltip:AddLine("|cffffdd00Right-Click|r", "|cffffffffOpen options menu|r");
+	end
+	
+	tooltip:SetAutoHideDelay(0.01, frame);
+	
+	local point, relative = Addon:GetAnchors(frame);
+	tooltip:ClearAllPoints();
+	tooltip:SetPoint(point, frame, relative, 0, 0);
+	
+	tooltip:Show();
+end
+
+function module:OnLeave(frame, tooltip)
 	
 end
+
+local expandList = {};
+function Addon:ExpandCurrencies()
+	expandList = {};
 	
-function module:getContextMenuData()
-	
+	local index = 1;
+	while(GetCurrencyListInfo(index)) do
+		local name, isHeader, isExpanded, isUnused, _, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount = GetCurrencyListInfo(index);
+		
+		if(isHeader and not isExpanded) then
+			ExpandCurrencyList(index, 1);
+			tinsert(expandList, name);
+		end
+		
+		index = index + 1;
+	end
 end
 
--- Addon:RegisterModule("currency", module);
+function Addon:RestoreCurrencies()
+	for _, headerName in ipairs(expandList) do
+		for index = 1, GetCurrencyListSize() do
+			local name, isHeader, isExpanded, isUnused, _, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount = GetCurrencyListInfo(index);
+			
+			if(name == headerName) then
+				ExpandCurrencyList(index, 0);
+				break;
+			end
+		end
+	end
+end
+
+function module:GetCurrencyMenu(slotIndex, slotData)
+	local menudata = {
+		{
+			text = "Slot " .. slotIndex, isTitle = true, notCheckable = true,
+		},
+		{
+			text = "Empty the slot",
+			func = function() slotData[slotIndex] = false; module:Update(); CloseMenus(); end,
+			notCheckable = true,
+		},
+	};
+	
+	Addon:ExpandCurrencies();
+	
+	local numCurrencies = GetCurrencyListSize();
+	
+	for index = 1, numCurrencies do
+		local name, isHeader, isExpanded, isUnused, _, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount = GetCurrencyListInfo(index);
+		
+		if(isUnused and Addon.db.global.hideUnused) then break end
+		
+		if(isHeader) then
+			tinsert(menudata, {
+				text = " ", isTitle = true, notCheckable = true,
+			});
+			tinsert(menudata, {
+				text = name, isTitle = true, notCheckable = true,
+			});
+		else
+			local currencyID = Addon:GetCurrencyID(index);
+			local isWatched = Addon:IsCurrencyWatched(currencyID);
+			
+			tinsert(menudata, {
+				text = string.format("%s %s", DATA.ICON_PATTERN_12:format(icon), name),
+				func = function() slotData[slotIndex] = currencyID; module:Update(); CloseMenus(); end,
+				checked = function() return isWatched; end,
+				disabled = isWatched and slotData[slotIndex] ~= currencyID,
+			});
+		end
+	end
+	
+	Addon:RestoreCurrencies();
+	
+	return menudata;
+end
+
+function module:GetContextMenuData()
+	local data = Addon:GetCurrencyData();
+	local playerData = Addon:GetPersonalCurrencyData();
+	
+	local contextMenuData = {
+		{
+			text = TEX_MODULE_ICON .. " Hoard Currency Options", isTitle = true, notCheckable = true,
+		},
+		{
+			text = "Display compact currency list",
+			func = function() Addon.db.global.compactCurrencies = not Addon.db.global.compactCurrencies; end,
+			checked = function() return Addon.db.global.compactCurrencies; end,
+			isNotRadio = true,
+		},
+		{
+			text = "Hide unused",
+			func = function() Addon.db.global.hideUnused = not Addon.db.global.hideUnused; end,
+			checked = function() return Addon.db.global.hideUnused; end,
+			isNotRadio = true,
+		},
+		{
+			text = " ", isTitle = true, notCheckable = true,
+		},
+		{
+			text = "Currencies", isTitle = true, notCheckable = true,
+		},
+		{
+			text = "|cffffdd00Slot 1:|r " .. Addon:GetCurrencyString(data.watched[1]),
+			hasArrow = true,
+			menuList = module:GetCurrencyMenu(1, data.watched),
+			notCheckable = true,
+		},
+		{
+			text = "|cffffdd00Slot 2:|r " .. Addon:GetCurrencyString(data.watched[2]),
+			hasArrow = true,
+			menuList = module:GetCurrencyMenu(2, data.watched),
+			notCheckable = true,
+		},
+		{
+			text = "|cffffdd00Slot 3:|r " .. Addon:GetCurrencyString(data.watched[3]),
+			hasArrow = true,
+			menuList = module:GetCurrencyMenu(3, data.watched),
+			notCheckable = true,
+		},
+		{
+			text = "|cffffdd00Slot 4:|r " .. Addon:GetCurrencyString(data.watched[4]),
+			hasArrow = true,
+			menuList = module:GetCurrencyMenu(4, data.watched),
+			notCheckable = true,
+		},
+		{
+			text = "Use global profile",
+			func = function()
+				playerData.showPersonal = not playerData.showPersonal;
+				if(playerData.showPersonal and playerData.watched == nil) then
+					playerData.watched = {};
+					for i=1,4 do
+						playerData.watched[i] = data.watched[i];
+					end
+				end
+				module:Update();
+			end,
+			checked = function() return not playerData.showPersonal; end,
+			isNotRadio = true,
+		},
+		{
+			text = " ", isTitle = true, notCheckable = true,
+		},
+		{
+			text = "Miscellaneous", isTitle = true, notCheckable = true,
+		},
+		{
+			text = "Display tooltip hint",
+			func = function() Addon.db.global.displayHint = not Addon.db.global.displayHint; end,
+			checked = function() return Addon.db.global.displayHint; end,
+			isNotRadio = true,
+		},
+	};
+	
+	return contextMenuData;
+end
+
+function module:GetText()
+	local data = Addon:GetCurrencyData();
+	local text = "";
+	
+	for index, currencyID in ipairs(data.watched) do
+		if(currencyID) then
+			local name, currentAmount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered, rarity = GetCurrencyInfo(currencyID);
+			
+			if(isDiscovered) then
+				text = strtrim(string.format("%s %s %s", text, BreakUpLargeNumbers(currentAmount), DATA.ICON_PATTERN_12:format(icon)));
+			end
+		end
+	end
+	
+	if(strlen(text) > 0) then
+		return text;
+	end
+	
+	return "Hoard Currency";
+end
+
+---------------------------------------------------
+-- Utility methods used by module
+
+function Addon:GetPersonalCurrencyData()
+	return self.db.global.currencies.characters[PLAYER_NAME];
+end
+
+function Addon:GetCurrencyData()
+	local playerData = Addon:GetPersonalCurrencyData();
+	
+	if(playerData.showPersonal) then
+		return playerData;
+	else
+		return self.db.global.currencies.global;
+	end
+end
+
+function Addon:IsCurrencyWatched(currency)
+	local data = Addon:GetCurrencyData();
+	
+	for index, watchedCurrencyID in ipairs(data.watched) do
+		if(watchedCurrencyID and watchedCurrencyID == currency) then
+			return true;
+		end
+	end
+	
+	return false;
+end
+
+function Addon:GetCurrencyString(currencyID)
+	if(not currencyID) then return "|cffd4d4d4Empty|r" end
+	
+	local name, amount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID);
+	return string.format("%s %s", DATA.ICON_PATTERN_14:format(icon), name);
+end
+
+function Addon:GetCurrencyID(currency)
+	local currencylink;
+	if(type(currency) == "number") then
+		currencylink = GetCurrencyListLink(currency);
+	else
+		currencylink = currency;
+	end
+	return strmatch(currencylink, "currency:(%d+)");
+end
+
+function Addon:PlayerInInstance()
+	local name, instanceType = GetInstanceInfo();
+	
+	if(instanceType == "none" or C_Garrison.IsOnGarrisonMap()) then
+		return false;
+	end
+	
+	return true, instanceType;
+end
+
+function Addon:IsPlayerInAGroup()
+	return IsInRaid() or IsInGroup();
+end
+
+---------------------------------------------------
+-- Events used by the module
+
+function Addon:CURRENCY_DISPLAY_UPDATE()
+	module:Update();
+end
+
+function Addon:ZONE_CHANGED(...)
+	-- print("ZONE_CHANGED", ...);
+	-- print(GetRealZoneText())
+end
