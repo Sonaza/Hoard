@@ -38,6 +38,9 @@ module.settings = {
 		module:OnClick(frame, button);
 	end,
 	OnEnter = function(frame)
+		if(module.tooltipOpen) then return end
+		module.tooltipOpen = true;
+		
 		module.tooltip = LibQTip:Acquire("HoardCurrencyTooltip", 2, "LEFT", "RIGHT");
 		module.tooltip:SetFrameStrata("TOOLTIP");
 		module.tooltip:EnableMouse(true);
@@ -45,6 +48,7 @@ module.settings = {
 	end,
 	OnLeave = function(frame)
 		module:OnLeave(frame, module.tooltip);
+		module.tooltipOpen = false;
 		
 		-- if(module.tooltip) then
 		-- 	LibQTip:Release(module.tooltip);
@@ -101,9 +105,10 @@ function module:BuildCurrencyListTooltip(index, parent, tooltip)
 	local name, amount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID);
 	
 	tooltip:AddHeader(string.format("%s |cffffdd00%s|r", DATA.ICON_PATTERN_14:format(icon), name));
-	tooltip:AddSeparator();
 	
 	local characters = Addon:GetCharacterData();
+	
+	local total_amount = 0;
 	
 	local list_characters = {};
 	for name, data in pairs(characters) do
@@ -113,6 +118,8 @@ function module:BuildCurrencyListTooltip(index, parent, tooltip)
 				class = data.class,
 				amount = data.currencies[currencyID],
 			});
+			
+			total_amount = total_amount + data.currencies[currencyID];
 		end
 	end
 	
@@ -135,7 +142,18 @@ function module:BuildCurrencyListTooltip(index, parent, tooltip)
 		
 		local color = Addon:GetClassColor(data.class);
 		
-		tooltip:AddLine( string.format(color, name), BreakUpLargeNumbers(data.amount) );
+		local currencyText = BreakUpLargeNumbers(data.amount);
+		
+		tooltip:AddLine(
+			string.format(color, name),
+			currencyText
+		);
+	end
+	
+	if(#list_characters > 1) then
+		tooltip:AddLine(" ");
+		tooltip:AddSeparator();
+		tooltip:AddLine("|cffffdd00Total|r", string.format("%s  %s", BreakUpLargeNumbers(total_amount), DATA.ICON_PATTERN_16:format(icon)) );
 	end
 	
 	local point, relative = Addon:GetHorizontalAnchors(parent);
@@ -163,7 +181,7 @@ function module:OnEnter(frame, tooltip)
 			if(not Addon.db.global.compactCurrencies) then 
 				tooltip:AddLine(" ");
 				
-				local lineIndex = tooltip:AddLine("|cffffdd00" .. name .. "|r");
+				local lineIndex = tooltip:AddLine("|cffffdd00" .. name .. "|r", isExpanded and "-" or "+");
 				
 				tooltip:SetLineScript(lineIndex, "OnMouseUp", function(self, _, button)
 					ExpandCurrencyList(index, isExpanded and 0 or 1);

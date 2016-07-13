@@ -34,20 +34,16 @@ module.settings = {
 	OnClick = function(frame, button)
 		module:OnClick(frame, button);
 	end,
-	-- OnTooltipShow = function(tooltip)
-	-- 	if not tooltip or not tooltip.AddLine then return end
-	-- 	module:OnTooltipShow(tooltip);
-	-- end,
-	-- OnLeave = function(frame)
-	-- 	module:OnLeave(frame);
-	-- end,
-	
 	OnEnter = function(frame)
+		if(module.tooltipOpen) then return end
+		module.tooltipOpen = true;
+		
 		module.tooltip = LibQTip:Acquire("HoardGoldTooltip", 2, "LEFT", "RIGHT");
 		module:OnEnter(frame, module.tooltip);
 	end,
 	OnLeave = function(frame)
 		module:OnLeave(frame, module.tooltip);
+		module.tooltipOpen = false;
 		
 		if(module.tooltip) then
 			LibQTip:Release(module.tooltip);
