@@ -94,8 +94,10 @@ function Addon:OnEnable()
 			onlyHistoryTotals   = false,
 			
 			-- Currency settings
-			compactCurrencies   = false,
-			hideUnused          = true,
+			compactCurrencies           = false,
+			showCurrencyTip             = true,
+			showCharacterCurrencies     = true,
+			hideUnused                  = true,
 			
 			currencies = {
 				global = {
@@ -133,6 +135,7 @@ function Addon:OnEnable()
 								gold = -1,
 								inMail = 0,
 								class = nil,
+								currencies = {},
 							},
 						},
 					},
@@ -192,6 +195,17 @@ function Addon:GetAnchors(frame)
 		return B, T;
 	else
 		return T, B;
+	end
+end
+
+function Addon:GetHorizontalAnchors(frame)
+	local R, L = "RIGHT", "LEFT";
+	local x, y = frame:GetCenter();
+	
+	if(x < _G.GetScreenWidth() / 2) then
+		return L, R;
+	else
+		return R, L;
 	end
 end
 

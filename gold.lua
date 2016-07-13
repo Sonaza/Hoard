@@ -97,8 +97,8 @@ function module:OnEnter(frame, tooltip)
 	tooltip:AddHeader(DATA.TEX_ADDON_ICON .. " |cffffdd00Hoard Gold|r")
 	
 	tooltip:AddLine("|cffffdd00Session|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(Addon.SessionData.total), Addon:GetCorrectCoinString(Addon.SessionData.total)));
-	tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(Addon.SessionData.gained));
-	tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(Addon.SessionData.lost));
+	tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(Addon.SessionData.gained));
+	tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(Addon.SessionData.lost));
 	tooltip:AddLine(" ")
 	
 	if(PLAYER_FACTION ~= "Neutral") then
@@ -108,8 +108,8 @@ function module:OnEnter(frame, tooltip)
 			tooltip:AddLine("|cffffdd00Today|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.today.total), Addon:GetCorrectCoinString(history.today.total)));
 			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(history.today.gained));
-				tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(history.today.lost));
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.today.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.today.lost));
 				tooltip:AddLine(" ");
 			end
 		end
@@ -118,8 +118,8 @@ function module:OnEnter(frame, tooltip)
 			tooltip:AddLine("|cffffdd00Yesterday|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.yesterday.total), Addon:GetCorrectCoinString(history.yesterday.total)));
 			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(history.yesterday.gained));
-				tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(history.yesterday.lost));
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.yesterday.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.yesterday.lost));
 				tooltip:AddLine(" ");
 			end
 		end
@@ -128,8 +128,8 @@ function module:OnEnter(frame, tooltip)
 			tooltip:AddLine("|cffffdd00Past Week|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.week_total.total), Addon:GetCorrectCoinString(history.week_total.total)));
 			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddLine(TEX_ARROW_PROFIT .. " |cffffdd00Profit|r", Addon:GetCorrectCoinString(history.week_total.gained));
-				tooltip:AddLine(TEX_ARROW_LOSS .. " |cffffdd00Loss|r", Addon:GetCorrectCoinString(history.week_total.lost));
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.week_total.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.week_total.lost));
 				tooltip:AddLine(" ");
 			end
 		end
@@ -150,12 +150,12 @@ function module:OnEnter(frame, tooltip)
 			totalGold = totalGold + data.gold + data.inMail;
 		end
 		
-		table.sort(list_characters, function(Addon, b)
-			if(Addon == nil and b == nil) then return false end
-			if(Addon == nil) then return true end
+		table.sort(list_characters, function(a, b)
+			if(a == nil and b == nil) then return false end
+			if(a == nil) then return true end
 			if(b == nil) then return false end
 			
-			return (Addon.data.gold + Addon.data.inMail) > (b.data.gold + b.data.inMail);
+			return (a.data.gold + a.data.inMail) > (b.data.gold + b.data.inMail);
 		end);
 		
 		for k, data in ipairs(list_characters) do
@@ -428,13 +428,6 @@ function Addon:SetTooltip(tooltip, name, data)
 		name = string.format("%s-%s", name_token, strsub(realm_token, 0, 3));
 	end
 	
-	local faction_icon = "";
-	-- if(data.faction == "Alliance") then
-	-- 	faction_icon = ENUM.FACTION_ICONS.Alliance;
-	-- elseif(data.faction == "Horde") then
-	-- 	faction_icon = ENUM.FACTION_ICONS.Horde;
-	-- end
-	
 	local color = Addon:GetClassColor(data.class);
 	
 	local mail_icon = "";
@@ -443,7 +436,7 @@ function Addon:SetTooltip(tooltip, name, data)
 	end
 	
 	tooltip:AddLine(
-		string.format("%s%s%s", faction_icon, string.format(color, name), mail_icon),
+		string.format("%s%s", string.format(color, name), mail_icon),
 		Addon:GetCorrectCoinString(data.gold + data.inMail)
 	);
 end

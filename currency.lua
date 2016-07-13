@@ -62,6 +62,7 @@ function module:Initialize()
 	Addon:RegisterEvent("ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED");
 	
 	CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME = Addon:GetPlayerInformation();
+	module:SaveCharacterCurrencies();
 end
 
 function module:OnClick(frame, button)
@@ -72,6 +73,76 @@ function module:OnClick(frame, button)
 		module.tooltip:Hide();
 		Addon:OpenContextMenu(frame, module:GetContextMenuData());
 	end
+end
+
+function module:SaveCharacterCurrencies()
+	local characterData = Addon:GetPlayerData();
+	
+	characterData.currencies = {};
+	
+	Addon:ExpandCurrencies();
+	
+	local numCurrencies = GetCurrencyListSize();
+	
+	for index = 1, numCurrencies do
+		local name, isHeader, isExpanded, isUnused, _, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount = GetCurrencyListInfo(index);
+		
+		if(not isHeader) then
+			local currencyID = Addon:GetCurrencyID(index);
+			characterData.currencies[currencyID] = count;
+		end
+	end
+	
+	Addon:RestoreCurrencies();
+end
+
+function module:BuildCurrencyListTooltip(index, parent, tooltip)
+	local currencyID = Addon:GetCurrencyID(index);
+	local name, amount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID);
+	
+	tooltip:AddHeader(string.format("%s |cffffdd00%s|r", DATA.ICON_PATTERN_14:format(icon), name));
+	tooltip:AddSeparator();
+	
+	local characters = Addon:GetCharacterData();
+	
+	local list_characters = {};
+	for name, data in pairs(characters) do
+		if(data.currencies and data.currencies[currencyID]) then
+			table.insert(list_characters, {
+				name = name,
+				class = data.class,
+				amount = data.currencies[currencyID],
+			});
+		end
+	end
+	
+	table.sort(list_characters, function(a, b)
+		if(a == nil and b == nil) then return false end
+		if(a == nil) then return true end
+		if(b == nil) then return false end
+		
+		return a.amount > b.amount;
+	end);
+	
+	for k, data in ipairs(list_characters) do
+		local name = data.name;
+		local name_token, realm_token = strsplit('-', name);
+		if(realm_token == HOME_REALM) then
+			name = name_token;
+		else
+			name = string.format("%s-%s", name_token, strsub(realm_token, 0, 3));
+		end
+		
+		local color = Addon:GetClassColor(data.class);
+		
+		tooltip:AddLine( string.format(color, name), BreakUpLargeNumbers(data.amount) );
+	end
+	
+	local point, relative = Addon:GetHorizontalAnchors(parent);
+	
+	tooltip:ClearAllPoints();
+	tooltip:SetPoint("TOP" .. point, parent, "TOP" .. relative);
+	tooltip:Show();
 end
 
 function module:OnEnter(frame, tooltip)
@@ -115,23 +186,36 @@ function module:OnEnter(frame, tooltip)
 			);
 			
 			tooltip:SetLineScript(lineIndex, "OnEnter", function(self)
-				GameTooltip:SetOwner(tooltip, "ANCHOR_NONE");
-				GameTooltip:SetPoint(point, tooltip, relative, 0, 0);
-				
-				GameTooltip:SetCurrencyToken(index);
-				GameTooltip:AddLine(" ");
-				
-				if(not isUnused) then
-					GameTooltip:AddLine("|cff00ff00Shift Right-Click to mark as unused|r");
-				else
-					GameTooltip:AddLine("|cff00ff00Shift Right-Click to remove unused|r");
+				if(Addon.db.global.showCurrencyTip) then
+					GameTooltip:SetOwner(tooltip, "ANCHOR_NONE");
+					GameTooltip:SetPoint(point, tooltip, relative, 0, 0);
+					GameTooltip:SetCurrencyToken(index);
+					GameTooltip:AddLine(" ");
+					
+					if(not isUnused) then
+						GameTooltip:AddLine("|cff00ff00Shift Right-Click to mark as unused|r");
+					else
+						GameTooltip:AddLine("|cff00ff00Shift Right-Click to remove unused|r");
+					end
+					
+					GameTooltip:Show();
 				end
 				
-				GameTooltip:Show();
+				if(Addon.db.global.showCharacterCurrencies) then
+					self.currencyListTip = LibQTip:Acquire("HoardCurrencySubTooltip", 2, "LEFT", "RIGHT");
+					module:BuildCurrencyListTooltip(index, tooltip, self.currencyListTip);
+				end
 			end);
 			
 			tooltip:SetLineScript(lineIndex, "OnLeave", function(self)
-				GameTooltip:Hide();
+				if(Addon.db.global.showCurrencyTip) then
+					GameTooltip:Hide();
+				end
+				
+				if(Addon.db.global.showCharacterCurrencies) then
+					LibQTip:Release(self.currencyListTip);
+					self.currencyListTip = nil;
+				end
 			end);
 				
 			tooltip:SetLineScript(lineIndex, "OnMouseUp", function(self, _, button)
@@ -250,6 +334,18 @@ function module:GetContextMenuData()
 			text = "Display compact currency list",
 			func = function() Addon.db.global.compactCurrencies = not Addon.db.global.compactCurrencies; end,
 			checked = function() return Addon.db.global.compactCurrencies; end,
+			isNotRadio = true,
+		},
+		{
+			text = "Show currency tooltip on hover",
+			func = function() Addon.db.global.showCurrencyTip = not Addon.db.global.showCurrencyTip; end,
+			checked = function() return Addon.db.global.showCurrencyTip; end,
+			isNotRadio = true,
+		},
+		{
+			text = "Show character currencies on hover",
+			func = function() Addon.db.global.showCharacterCurrencies = not Addon.db.global.showCharacterCurrencies; end,
+			checked = function() return Addon.db.global.showCharacterCurrencies; end,
 			isNotRadio = true,
 		},
 		{
@@ -406,6 +502,7 @@ end
 
 function Addon:CURRENCY_DISPLAY_UPDATE()
 	module:Update();
+	module:SaveCharacterCurrencies();
 end
 
 function Addon:ZONE_CHANGED(...)
