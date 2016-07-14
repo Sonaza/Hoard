@@ -1,7 +1,7 @@
 ## Interface: 60200
 ## Title: Hoard
-## Notes: Character Gold Display and Tracker
-## Version: 1.0.0
+## Notes: Character gold and currency display
+## Version: 1.1.0
 ## Author: Sonaza
 ## OptionalDeps: Ace3, LibDataBroker-1.1
 ## SavedVariables: HoardDB

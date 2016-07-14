@@ -46,7 +46,8 @@ function Addon:GetPlayerName()
 end
 
 function Addon:GetHomeRealm()
-	return string.gsub(GetRealmName(), " ", "")
+	local name = string.gsub(GetRealmName(), " ", "");
+	return name;
 end
 
 function Addon:GetConnectedRealms()
@@ -98,6 +99,7 @@ function Addon:OnEnable()
 			showCurrencyTip             = true,
 			showCharacterCurrencies     = true,
 			hideUnused                  = true,
+			showTextIfEmpty				= true,
 			
 			currencies = {
 				global = {

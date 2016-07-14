@@ -160,13 +160,14 @@ function module:BuildCurrencyListTooltip(index, parent, tooltip)
 	
 	tooltip:ClearAllPoints();
 	tooltip:SetPoint("TOP" .. point, parent, "TOP" .. relative);
+	tooltip:SetClampedToScreen(true);
 	tooltip:Show();
 end
 
 function module:OnEnter(frame, tooltip)
 	tooltip:Clear();
 	
-	tooltip:AddHeader(TEX_MODULE_ICON .. " |cffffdd00Hoard Currencies|r");
+	tooltip:AddHeader(TEX_MODULE_ICON .. " |cffffdd00Hoard Currency|r");
 	
 	local point, relative = Addon:GetAnchors(frame);
 	
@@ -181,7 +182,7 @@ function module:OnEnter(frame, tooltip)
 			if(not Addon.db.global.compactCurrencies) then 
 				tooltip:AddLine(" ");
 				
-				local lineIndex = tooltip:AddLine("|cffffdd00" .. name .. "|r", isExpanded and "-" or "+");
+				local lineIndex = tooltip:AddLine("|cffffdd00" .. name .. "|r", isExpanded and "" or "+");
 				
 				tooltip:SetLineScript(lineIndex, "OnMouseUp", function(self, _, button)
 					ExpandCurrencyList(index, isExpanded and 0 or 1);
@@ -424,6 +425,12 @@ function module:GetContextMenuData()
 			text = "Miscellaneous", isTitle = true, notCheckable = true,
 		},
 		{
+			text = "Show dummy label if empty",
+			func = function() Addon.db.global.showTextIfEmpty = not Addon.db.global.showTextIfEmpty; module:Update(); end,
+			checked = function() return Addon.db.global.showTextIfEmpty; end,
+			isNotRadio = true,
+		},
+		{
 			text = "Display tooltip hint",
 			func = function() Addon.db.global.displayHint = not Addon.db.global.displayHint; end,
 			checked = function() return Addon.db.global.displayHint; end,
@@ -452,7 +459,7 @@ function module:GetText()
 		return text;
 	end
 	
-	return "Hoard Currency";
+	return Addon.db.global.showTextIfEmpty and "|cffffdd00Hoard|r Currency" or "";
 end
 
 ---------------------------------------------------
