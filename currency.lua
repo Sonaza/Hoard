@@ -246,6 +246,10 @@ function module:OnEnter(frame, tooltip)
 		end
 	end
 	
+	if(GetCurrencyListSize() == 0) then
+		tooltip:AddLine("|cffffdd00Go get some currencies!|r");
+	end
+	
 	if(Addon.db.global.displayHint) then
 		tooltip:AddLine(" ");
 		tooltip:AddLine("|cffffdd00Left-Click|r", "|cffffffffOpen currency menu|r");
