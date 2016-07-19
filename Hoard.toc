@@ -1,4 +1,4 @@
-## Interface: 60200
+## Interface: 70000
 ## Title: Hoard
 ## Notes: Character gold and currency display
 ## Version: 1.1.0
