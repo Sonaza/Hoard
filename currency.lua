@@ -6,7 +6,6 @@ local _;
 
 local Addon, DATA, ENUM = unpack(SHARED);
 
-local LibDataBroker = LibStub("LibDataBroker-1.1");
 local LibQTip = LibStub("LibQTip-1.0");
 local AceDB = LibStub("AceDB-3.0");
 
