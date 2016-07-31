@@ -427,7 +427,7 @@ function Addon:SetTooltip(tooltip, name, data)
 	
 	local mail_icon = "";
 	if(data.inMail > 0) then
-		mail_icon = " " .. DATA.TEX_MAIL_ICON;
+		mail_icon = " " .. TEX_MAIL_ICON;
 	end
 	
 	tooltip:AddLine(
