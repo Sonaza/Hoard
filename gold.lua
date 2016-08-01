@@ -88,6 +88,7 @@ end
 
 function module:OnEnter(frame, tooltip)
 	tooltip:Clear();
+	tooltip:SetClampedToScreen(true);
 	
 	tooltip:AddHeader(DATA.TEX_ADDON_ICON .. " |cffffdd00Hoard Gold|r")
 	

@@ -165,6 +165,7 @@ end
 
 function module:OnEnter(frame, tooltip)
 	tooltip:Clear();
+	tooltip:SetClampedToScreen(true);
 	
 	tooltip:AddHeader(TEX_MODULE_ICON .. " |cffffdd00Hoard Currency|r");
 	
