@@ -78,10 +78,10 @@ function module:Initialize()
 end
 
 function module:OnClick(frame, button)
-	if(button == "LeftButton") then
-		
-	elseif(button == "RightButton") then
-		module.tooltip:Hide();
+	if(button == "RightButton") then
+		if(module.tooltip) then
+			module.tooltip:Hide();
+		end
 		Addon:OpenContextMenu(frame, module:GetContextMenuData());
 	end
 end
