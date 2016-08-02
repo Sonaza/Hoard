@@ -181,41 +181,6 @@ function module:OnLeave(frame)
 end
 
 function module:GetContextMenuData()
-	local characterRemovalMenuData = {};
-	
-	local firstFaction = true;
-	local realmData = Addon:GetConnectedRealmData(false);
-	for faction, factionData in pairs(realmData) do
-		if(not firstFaction) then
-			tinsert(characterRemovalMenuData, {
-				text = " ", isTitle = true, notCheckable = true,
-			});
-		end
-		
-		tinsert(characterRemovalMenuData, {
-			text = faction, isTitle = true, notCheckable = true,
-		});
-		firstFaction = false;
-		
-		for name, data in pairs(factionData.characters) do
-			local name_token, realm_token = strsplit("-", name, 2);
-			
-			if(realm_token ~= HOME_REALM) then
-				realm_token = string.format(" |cffaaaaaa(%s)|r", realm_token);
-			else
-				realm_token = "";
-			end
-			
-			name_token = string.format(Addon:GetClassColor(data.class), name_token);
-			
-			tinsert(characterRemovalMenuData, {
-				text = string.format("%s|r%s", name_token, realm_token),
-				func = function() factionData.characters[name] = nil; CloseMenus(); end,
-				notCheckable = true,
-			});
-		end
-	end
-	
 	local colorBlindModeEnabled = (GetCVar("colorblindMode") == "1");
 	local colorBlindModeText = colorBlindModeEnabled and " |cff00ff00(UI Colorblind Mode Enabled)|r" or "";
 	
@@ -245,7 +210,6 @@ function module:GetContextMenuData()
 			func = function() Addon.db.global.shortDisplay = not Addon.db.global.shortDisplay; module:Update(); end,
 			checked = function() return Addon.db.global.shortDisplay; end,
 			isNotRadio = true,
-			tooltip = "hai",
 		},
 		{
 			text = "Only show gold",
@@ -290,20 +254,44 @@ function module:GetContextMenuData()
 			text = "Miscellaneous", isTitle = true, notCheckable = true,
 		},
 		{
+			text = "Reset current session",
+			func = function()
+				module.session = {
+					gained = 0,
+					lost = 0,
+					total = 0,
+				};
+			end,
+			notCheckable = true,
+		},
+		{
+			text = "Reset history for today",
+			func = function() module:ResetHistory(0); end,
+			notCheckable = true,
+		},
+		{
+			text = "Reset history for yesterday",
+			func = function() module:ResetHistory(-1); end,
+			notCheckable = true,
+		},
+		{
+			text = "Remove characters",
+			menuList = Addon:GetCharacterRemovalMenu(),
+			hasArrow = true,
+			notCheckable = true,
+		},
+		{
+			text = " ", isTitle = true, notCheckable = true,
+		},
+		{
 			text = "Display tooltip hint",
 			func = function() Addon.db.global.displayHint = not Addon.db.global.displayHint; end,
 			checked = function() return Addon.db.global.displayHint; end,
 			isNotRadio = true,
 		},
 		{
-			text = "Remove characters",
-			menuList = characterRemovalMenuData,
-			hasArrow = true,
-			notCheckable = true,
-		},
-		{
-			text = "Reset session",
-			func = function() module.session = { gained = 0, lost = 0, total = 0, };  end,
+			text = "Close",
+			func = function() CloseMenus(); end,
 			notCheckable = true,
 		},
 	};
@@ -361,6 +349,17 @@ function module:AddMoneyRecord(money_diff)
 	end
 	
 	module.session.total = module.session.gained - module.session.lost;
+end
+
+function module:ResetHistory(offset)
+	if(not offset or offset > 0) then return end
+	
+	local thedate = Addon:GetDate(offset);
+	local statsData = Addon:GetStatsData();
+	statsData[thedate] = {
+		gained = 0,
+		lost = 0,
+	};
 end
 
 function module:GetMoneyHistory()
@@ -629,7 +628,6 @@ function Addon:PLAYER_MONEY()
 		local diff = playerMoney - playerData.gold;
 		
 		if(diff > 0 and playerData.inMail > 0 and module.mailmoneybuffer > 0) then
-			playerData.inMail = playerData.inMail - module.mailmoneybuffer;
 			diff = diff - module.mailmoneybuffer;
 			module.mailmoneybuffer = 0;
 		elseif(diff < 0 and module.sentToAlt) then
@@ -646,7 +644,7 @@ function Addon:PLAYER_MONEY()
 end
 
 function Addon:MAIL_SHOW()
-	module:UpdateMail();
+	
 end
 
 function Addon:MAIL_INBOX_UPDATE()
@@ -654,18 +652,20 @@ function Addon:MAIL_INBOX_UPDATE()
 end
 
 function module:UpdateMail()
-	local playerData = Addon:GetPlayerData();
-	playerData.inMail = 0;
+	local mailmoney = 0;
 	
 	local inboxNum = GetInboxNumItems();
 	if(inboxNum > 0) then
 		for index = 1, inboxNum do
 			local _, _, sender, _, money = GetInboxHeaderInfo(index);
 			if(module:IsOwnCharacter(sender) and money > 0) then
-				playerData.inMail = playerData.inMail + money;
+				mailmoney = mailmoney + money;
 			end
 		end
 	end
+	
+	local playerData = Addon:GetPlayerData();
+	playerData.inMail = mailmoney;
 end
 
 hooksecurefunc("SetSendMailMoney", function(...) module:SetSendMailMoneyHook(...) end)

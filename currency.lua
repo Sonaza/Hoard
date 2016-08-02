@@ -365,12 +365,18 @@ function module:GetContextMenuData()
 			func = function() Addon.db.global.showCurrencyTip = not Addon.db.global.showCurrencyTip; end,
 			checked = function() return Addon.db.global.showCurrencyTip; end,
 			isNotRadio = true,
+			tooltipTitle = "Show currency tooltip on hover",
+			tooltipText = "Display currency information tooltip when hovering a currency on the list.",
+			tooltipOnButton = 1,
 		},
 		{
-			text = "Show character currencies on hover",
+			text = "Show character currencies when hovering",
 			func = function() Addon.db.global.showCharacterCurrencies = not Addon.db.global.showCharacterCurrencies; end,
 			checked = function() return Addon.db.global.showCharacterCurrencies; end,
 			isNotRadio = true,
+			tooltipTitle = "Show character currencies when hovering",
+			tooltipText = "Display the currencies of all characters on the side when hovering a currency on the list.",
+			tooltipOnButton = 1,
 		},
 		{
 			text = "Hide unused",
@@ -436,10 +442,24 @@ function module:GetContextMenuData()
 			isNotRadio = true,
 		},
 		{
+			text = "Remove characters",
+			menuList = Addon:GetCharacterRemovalMenu(),
+			hasArrow = true,
+			notCheckable = true,
+		},
+		{
+			text = " ", isTitle = true, notCheckable = true,
+		},
+		{
 			text = "Display tooltip hint",
 			func = function() Addon.db.global.displayHint = not Addon.db.global.displayHint; end,
 			checked = function() return Addon.db.global.displayHint; end,
 			isNotRadio = true,
+		},
+		{
+			text = "Close",
+			func = function() CloseMenus(); end,
+			notCheckable = true,
 		},
 	};
 	

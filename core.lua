@@ -306,6 +306,45 @@ function Addon:GetArchive()
 	return Addon:GetConnectedRealmData().archived;
 end
 
+function Addon:GetCharacterRemovalMenu()
+	local menudata = {};
+	
+	local firstFaction = true;
+	local realmData = Addon:GetConnectedRealmData(false);
+	for faction, factionData in pairs(realmData) do
+		if(not firstFaction) then
+			tinsert(menudata, {
+				text = " ", isTitle = true, notCheckable = true,
+			});
+		end
+		
+		tinsert(menudata, {
+			text = faction, isTitle = true, notCheckable = true,
+		});
+		firstFaction = false;
+		
+		for name, data in pairs(factionData.characters) do
+			local name_token, realm_token = strsplit("-", name, 2);
+			
+			if(realm_token ~= HOME_REALM) then
+				realm_token = string.format(" |cffaaaaaa(%s)|r", realm_token);
+			else
+				realm_token = "";
+			end
+			
+			name_token = string.format(Addon:GetClassColor(data.class), name_token);
+			
+			tinsert(menudata, {
+				text = string.format("%s|r%s", name_token, realm_token),
+				func = function() factionData.characters[name] = nil; CloseMenus(); end,
+				notCheckable = true,
+			});
+		end
+	end
+	
+	return menudata;
+end
+
 --------------------------------------
 
 function Addon:GetDate(days_diff)
