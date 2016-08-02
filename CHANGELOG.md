@@ -1,3 +1,6 @@
+## 1.1.3
+* Addon now hooks directly to mail functions for improved compability with other addons.
+
 ## 1.1.2
 * Attempted fix to tooltip nil error in OnClick callback.
 

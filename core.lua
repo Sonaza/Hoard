@@ -157,6 +157,11 @@ function Addon:OnEnable()
 	Addon:InitializeModules();
 end
 
+local MESSAGE_PATTERN = "|cffffbb4fHoard|r %s";
+function Addon:AddMessage(pattern, ...)
+	DEFAULT_CHAT_FRAME:AddMessage(MESSAGE_PATTERN:format(string.format(pattern, ...)), 1, 1, 1);
+end
+
 -------------------------------------------------------------------------
 
 Addon.Modules = {};

@@ -59,18 +59,16 @@ function module:Initialize()
 	Addon:RegisterEvent("PLAYER_MONEY");
 	
 	Addon:RegisterEvent("MAIL_SHOW");
-	Addon:RegisterEvent("MAIL_CLOSED");
 	Addon:RegisterEvent("MAIL_INBOX_UPDATE");
-	Addon:RegisterEvent("MAIL_SEND_SUCCESS");
 	
-	Addon.SessionData = {
+	module.session = {
 		gained = 0,
 		lost = 0,
 		total = 0,
 	};
 	
-	Addon.MailMoney = 0;
-	Addon.MailMoneyBuffer = 0;
+	module.mailmoney = 0;
+	module.mailmoneybuffer = 0;
 	
 	CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME = Addon:GetPlayerInformation();
 	
@@ -92,40 +90,40 @@ function module:OnEnter(frame, tooltip)
 	
 	tooltip:AddHeader(DATA.TEX_ADDON_ICON .. " |cffffdd00Hoard Gold|r")
 	
-	tooltip:AddLine("|cffffdd00Session|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(Addon.SessionData.total), Addon:GetCorrectCoinString(Addon.SessionData.total)));
-	tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(Addon.SessionData.gained));
-	tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(Addon.SessionData.lost));
+	tooltip:AddLine("|cffffdd00Session|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(module.session.total), module:GetCorrectCoinString(module.session.total)));
+	tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", module:GetCorrectCoinString(module.session.gained));
+	tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", module:GetCorrectCoinString(module.session.lost));
 	tooltip:AddLine(" ")
 	
 	if(PLAYER_FACTION ~= "Neutral") then
-		local history = Addon:GetMoneyHistory();
+		local history = module:GetMoneyHistory();
 		
 		if(Addon.db.global.showToday) then
-			tooltip:AddLine("|cffffdd00Today|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.today.total), Addon:GetCorrectCoinString(history.today.total)));
+			tooltip:AddLine("|cffffdd00Today|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.today.total), module:GetCorrectCoinString(history.today.total)));
 			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.today.gained));
-				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.today.lost));
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", module:GetCorrectCoinString(history.today.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", module:GetCorrectCoinString(history.today.lost));
 				tooltip:AddLine(" ");
 			end
 		end
 		
 		if(Addon.db.global.showYesterday) then
-			tooltip:AddLine("|cffffdd00Yesterday|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.yesterday.total), Addon:GetCorrectCoinString(history.yesterday.total)));
+			tooltip:AddLine("|cffffdd00Yesterday|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.yesterday.total), module:GetCorrectCoinString(history.yesterday.total)));
 			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.yesterday.gained));
-				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.yesterday.lost));
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", module:GetCorrectCoinString(history.yesterday.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", module:GetCorrectCoinString(history.yesterday.lost));
 				tooltip:AddLine(" ");
 			end
 		end
 		
 		if(Addon.db.global.showWeek) then
-			tooltip:AddLine("|cffffdd00Past Week|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.week_total.total), Addon:GetCorrectCoinString(history.week_total.total)));
+			tooltip:AddLine("|cffffdd00Past Week|r", string.format("|cff%s%s|r", Addon:GetTotalColorHex(history.week_total.total), module:GetCorrectCoinString(history.week_total.total)));
 			
 			if(not Addon.db.global.onlyHistoryTotals) then
-				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", Addon:GetCorrectCoinString(history.week_total.gained));
-				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", Addon:GetCorrectCoinString(history.week_total.lost));
+				tooltip:AddLine(TEX_ARROW_PROFIT .. " Profit", module:GetCorrectCoinString(history.week_total.gained));
+				tooltip:AddLine(TEX_ARROW_LOSS .. " Loss", module:GetCorrectCoinString(history.week_total.lost));
 				tooltip:AddLine(" ");
 			end
 		end
@@ -155,12 +153,12 @@ function module:OnEnter(frame, tooltip)
 		end);
 		
 		for k, data in ipairs(list_characters) do
-			Addon:SetTooltip(tooltip, data.name, data.data);
+			module:SetTooltip(tooltip, data.name, data.data);
 		end
 		
 		if(#list_characters > 1) then
 			tooltip:AddLine(" ")
-			tooltip:AddLine("|cffffdd00Total|r", Addon:GetCorrectCoinString(totalGold));
+			tooltip:AddLine("|cffffdd00Total|r", module:GetCorrectCoinString(totalGold));
 		end
 	end
 	
@@ -305,7 +303,7 @@ function module:GetContextMenuData()
 		},
 		{
 			text = "Reset session",
-			func = function() Addon.SessionData = { gained = 0, lost = 0, total = 0, };  end,
+			func = function() module.session = { gained = 0, lost = 0, total = 0, };  end,
 			notCheckable = true,
 		},
 	};
@@ -317,9 +315,9 @@ function module:GetText()
 	local displayGold = 0;
 	
 	if(Addon.db.global.displayMode == ENUM.DISPLAY_PLAYER_GOLD) then
-		displayGold = Addon:GetPlayerGold();
+		displayGold = module:GetPlayerGold();
 	elseif(Addon.db.global.displayMode == ENUM.DISPLAY_REALM_GOLD) then
-		displayGold = Addon:GetRealmGold();
+		displayGold = module:GetRealmGold();
 	end
 	
 	if(Addon.db.global.onlyGold and displayGold >= 10000) then
@@ -329,18 +327,25 @@ function module:GetText()
 	local useLiteralMode = Addon.db.global.literalEnabled or GetCVar("colorblindMode") == "1";
 	
 	if(Addon.db.global.shortDisplay) then
-		return Addon:GetShortCoinString(displayGold, useLiteralMode);
-	elseif(useLiteralMode) then
-		return Addon:GetLiteralCoinString(displayGold);
+		return module:GetShortCoinString(displayGold, useLiteralMode);
 	else
-		return Addon:GetCoinTextureString(displayGold);
+		return module:GetMultiCoinString(displayGold);
+	end
+end
+
+function module:GetMultiCoinString(coins)
+	local useLiteralMode = Addon.db.global.literalEnabled or GetCVar("colorblindMode") == "1";
+	if(useLiteralMode) then
+		return module:GetLiteralCoinString(coins);
+	else
+		return module:GetCoinTextureString(coins);
 	end
 end
 
 ---------------------------------------------------
 -- Utility methods used by module
 
-function Addon:AddMoneyRecord(money_diff)
+function module:AddMoneyRecord(money_diff)
 	if(money_diff == nil or money_diff == 0) then return end
 	if(PLAYER_FACTION == "Neutral") then return end
 	
@@ -349,16 +354,16 @@ function Addon:AddMoneyRecord(money_diff)
 	
 	if(money_diff > 0) then
 		statsData[date].gained = statsData[date].gained + money_diff;
-		Addon.SessionData.gained = Addon.SessionData.gained + money_diff;
+		module.session.gained = module.session.gained + money_diff;
 	elseif(money_diff < 0) then
 		statsData[date].lost = statsData[date].lost + math.abs(money_diff);
-		Addon.SessionData.lost = Addon.SessionData.lost + math.abs(money_diff);
+		module.session.lost = module.session.lost + math.abs(money_diff);
 	end
 	
-	Addon.SessionData.total = Addon.SessionData.gained - Addon.SessionData.lost;
+	module.session.total = module.session.gained - module.session.lost;
 end
 
-function Addon:GetMoneyHistory()
+function module:GetMoneyHistory()
 	local today 	= Addon:GetDate();
 	local yesterday = Addon:GetDate(-1);
 	local week_ago 	= Addon:GetDate(-7);
@@ -399,12 +404,12 @@ function Addon:GetMoneyHistory()
 end
 
 
-function Addon:GetPlayerGold()
+function module:GetPlayerGold()
 	local playerData = Addon:GetPlayerData();
 	return playerData.gold, playerData.inMail;
 end
 
-function Addon:GetRealmGold()
+function module:GetRealmGold()
 	local characters = Addon:GetCharacterData();
 	local totalGold = 0;
 	for name, data in pairs(characters) do
@@ -416,7 +421,7 @@ function Addon:GetRealmGold()
 	return totalGold;
 end
 
-function Addon:SetTooltip(tooltip, name, data)
+function module:SetTooltip(tooltip, name, data)
 	local name_token, realm_token = strsplit('-', name)
 	if(realm_token == HOME_REALM) then
 		name = name_token;
@@ -427,17 +432,17 @@ function Addon:SetTooltip(tooltip, name, data)
 	local color = Addon:GetClassColor(data.class);
 	
 	local mail_icon = "";
-	if(data.inMail > 0) then
+	if(data.inMail and data.inMail > 0) then
 		mail_icon = " " .. TEX_MAIL_ICON;
 	end
 	
 	tooltip:AddLine(
 		string.format("%s%s", string.format(color, name), mail_icon),
-		Addon:GetCorrectCoinString(data.gold + data.inMail)
+		module:GetCorrectCoinString(data.gold + data.inMail)
 	);
 end
 
-function Addon:GetTotalColor(total)
+function module:GetTotalColor(total)
 	if(total == nil) then return 1, 0, 1 end
 	
 	if(total > 0) then
@@ -450,18 +455,18 @@ function Addon:GetTotalColor(total)
 end
 
 function Addon:GetTotalColorHex(total)
-	local r, g, b = Addon:GetTotalColor(total);
+	local r, g, b = module:GetTotalColor(total);
 	return string.format("%x%x%x", r * 255, g * 255, b * 255)
 end
 
-function Addon:NormalizeCoinValue(coin)
+function module:NormalizeCoinValue(coin)
 	if(coin == nil) then return 0 end
 	coin = tonumber(coin) or 0;
 	return math.abs(coin), coin >= 0 and 1 or -1;
 end
 
-function Addon:GetCorrectCoinString(coin)
-	local coin, sign = Addon:NormalizeCoinValue(coin)
+function module:GetCorrectCoinString(coin)
+	local coin, sign = module:NormalizeCoinValue(coin)
 	
 	local prefix = "";
 	if(sign == -1) then prefix = "-" end
@@ -469,14 +474,14 @@ function Addon:GetCorrectCoinString(coin)
 	local useLiteralMode = Addon.db.global.literalEnabled or GetCVar("colorblindMode") == "1";
 	
 	if(useLiteralMode) then
-		return prefix .. Addon:GetLiteralCoinString(coin);
+		return prefix .. module:GetLiteralCoinString(coin);
 	end
 	
-	return prefix .. strtrim(Addon:GetCoinTextureString(coin)) .. "  ";
+	return prefix .. strtrim(module:GetCoinTextureString(coin)) .. "  ";
 end
 
-function Addon:GetLiteralCoinString(coin)
-	local coin, sign = Addon:NormalizeCoinValue(coin)
+function module:GetLiteralCoinString(coin)
+	local coin, sign = module:NormalizeCoinValue(coin)
 	
 	local copper = coin % 100;
 	local silver = math.floor((coin % 10000) / 100);
@@ -503,8 +508,8 @@ function Addon:GetLiteralCoinString(coin)
 	return strtrim(result);
 end
 
-function Addon:GetCoinTextureString(coin)
-	local coin, sign = Addon:NormalizeCoinValue(coin)
+function module:GetCoinTextureString(coin)
+	local coin, sign = module:NormalizeCoinValue(coin)
 	
 	local copper = coin % 100;
 	local silver = math.floor((coin % 10000) / 100);
@@ -539,10 +544,10 @@ local function roundfloat(num, idp)
 	return tonumber(string.format("%." .. (idp or 0) .. "f", num))
 end
 
-function Addon:GetShortCoinString(coin, literal)
+function module:GetShortCoinString(coin, literal)
 	if(literal == nil) then literal = false end
 	
-	local coin, sign = Addon:NormalizeCoinValue(coin)
+	local coin, sign = module:NormalizeCoinValue(coin)
 	
 	local copper = coin % 100;
 	local silver = math.floor((coin % 10000) / 100);
@@ -572,21 +577,24 @@ function Addon:GetShortCoinString(coin, literal)
 	end
 end
 
-function Addon:FixName(name)
-	local name_token, realm_token = strsplit("-", name, 2);
-	return string.format("%s-%s", name_token, realm_token or GetRealmName());
+function module:FixName(name)
+	local name, realm = strsplit("-", name, 2);
+	return string.format("%s-%s", name, realm or GetRealmName());
 end
 
-function Addon:IsOwnCharacter(name)
-	name = Addon:FixName(name);
+function module:IsOwnCharacter(name)
+	if(not name) then return false end
+	
+	name = module:FixName(name);
 	
 	local characters = Addon:GetCharacterData();
 	if(characters[name].gold ~= -1) then
 		return true, characters[name];
 	else
 		characters[name] = nil;
-		return false, nil;
 	end
+	
+	return false;
 end
 
 ---------------------------------------------------
@@ -610,7 +618,7 @@ function Addon:NEUTRAL_FACTION_SELECT_RESULT()
 	PLAYER_FACTION = newFaction;
 	
 	-- Money sort of appeared from nowhere when character chose faction so let's record it
-	Addon:AddMoneyRecord(newCharacterData[PLAYER_NAME].gold);
+	module:AddMoneyRecord(newCharacterData[PLAYER_NAME].gold);
 end
 
 function Addon:PLAYER_MONEY()
@@ -620,16 +628,16 @@ function Addon:PLAYER_MONEY()
 	if(playerData.gold >= 0) then
 		local diff = playerMoney - playerData.gold;
 		
-		if(diff > 0 and playerData.inMail > 0 and Addon.MailMoneyBuffer > 0) then
-			playerData.inMail = playerData.inMail - Addon.MailMoneyBuffer;
-			diff = diff - Addon.MailMoneyBuffer;
-			Addon.MailMoneyBuffer = 0;
-		elseif(diff < 0 and Addon.MoneySentToAlt) then
+		if(diff > 0 and playerData.inMail > 0 and module.mailmoneybuffer > 0) then
+			playerData.inMail = playerData.inMail - module.mailmoneybuffer;
+			diff = diff - module.mailmoneybuffer;
+			module.mailmoneybuffer = 0;
+		elseif(diff < 0 and module.sentToAlt) then
 			diff = 0;
-			Addon.MoneySentToAlt = false;
+			module.sentToAlt = false;
 		end
 		
-		Addon:AddMoneyRecord(diff);
+		module:AddMoneyRecord(diff);
 	end
 	
 	playerData.gold = playerMoney;
@@ -638,68 +646,53 @@ function Addon:PLAYER_MONEY()
 end
 
 function Addon:MAIL_SHOW()
-	Addon.MailOpen = true;
-	Addon.MailRescan = true;
-	
-	if(not Addon.MailHooked) then
-		hooksecurefunc("SetSendMailMoney", function(amount)
-			Addon.MailMoney = amount;
-		end);
-		
-		hooksecurefunc("TakeInboxMoney", function(index)
-			local mail = Addon.MailCache[index];
-			if(Addon:IsOwnCharacter(mail.sender) and mail.money > 0) then
-				Addon.MailMoneyBuffer = mail.money;
-			end
-		end);
-
-		hooksecurefunc("AutoLootMailItem", function(index)
-			local mail = Addon.MailCache[index];
-			if(Addon:IsOwnCharacter(mail.sender) and mail.money > 0) then
-				Addon.MailMoneyBuffer = mail.money;
-			end
-		end);
-		
-		Addon.MailHooked = true;
-	end
-end
-
-function Addon:MAIL_CLOSED()
-	Addon.MailOpen = false;
-	Addon.MailRescan = true;
+	module:UpdateMail();
 end
 
 function Addon:MAIL_INBOX_UPDATE()
-	if(not Addon.MailOpen) then return end
-	
-	Addon.MailCache = {};
+	module:UpdateMail();
+end
+
+function module:UpdateMail()
+	local playerData = Addon:GetPlayerData();
+	playerData.inMail = 0;
 	
 	local inboxNum = GetInboxNumItems();
 	if(inboxNum > 0) then
-		local mailMoney = 0;
-		
-		for mail_index = 1, inboxNum do
-			local _, _, sender, _, money = GetInboxHeaderInfo(mail_index);
-			
-			Addon.MailCache[mail_index] = {
-				sender = sender,
-				money = money,
-			};
+		for index = 1, inboxNum do
+			local _, _, sender, _, money = GetInboxHeaderInfo(index);
+			if(module:IsOwnCharacter(sender) and money > 0) then
+				playerData.inMail = playerData.inMail + money;
+			end
 		end
-		
-		module:Update();
 	end
 end
 
-function Addon:MAIL_SEND_SUCCESS()
-	local recipient = strtrim(SendMailNameEditBox:GetText());
-	recipient = Addon:FixName(recipient);
+hooksecurefunc("SetSendMailMoney", function(...) module:SetSendMailMoneyHook(...) end)
+function module:SetSendMailMoneyHook(copper)
+	module.mailmoney = copper;
+end
+
+hooksecurefunc("SendMail", function(...) module:SendMailHook(...) end)
+function module:SendMailHook(recipient, subject, body)
+	if(not recipient) then return end
 	
-	local isOwn, characterData = Addon:IsOwnCharacter(recipient);
-	if(isOwn) then
-		Addon.MoneySentToAlt = true;
-		characterData.inMail = characterData.inMail + Addon.MailMoney;
+	local isOwn, data = module:IsOwnCharacter(recipient);
+	if(isOwn and module.mailmoney > 0) then
+		module.sentToAlt = true;
+		data.inMail = data.inMail + module.mailmoney;
+		
+		Addon:AddMessage("Sent %s to own character (%s)", module:GetMultiCoinString(module.mailmoney), Addon:GetClassColor(data.class):format(recipient))
 	end
 	
-	Addon.MailMoney = 0;
+	module.mailmoney = 0;
+end
+
+hooksecurefunc("TakeInboxMoney", function(...) module:TakeInboxMoneyHook(...) end);
+hooksecurefunc("AutoLootMailItem", function(...) module:TakeInboxMoneyHook(...) end);
+function module:TakeInboxMoneyHook(index)
+	local _, _, sender, _, money = GetInboxHeaderInfo(index);
+	if(module:IsOwnCharacter(sender) and money > 0) then
+		module.mailmoneybuffer = money;
+	end
 end
