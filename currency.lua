@@ -259,7 +259,6 @@ function module:OnEnter(frame, tooltip)
 	
 	tooltip:SetAutoHideDelay(0.01, frame);
 	
-	local point, relative = Addon:GetAnchors(frame);
 	tooltip:ClearAllPoints();
 	tooltip:SetPoint(point, frame, relative, 0, 0);
 	
@@ -385,6 +384,12 @@ function module:GetContextMenuData()
 			isNotRadio = true,
 		},
 		{
+			text = "Currency icon on the left",
+			func = function() Addon.db.global.currencyLeftSide = not Addon.db.global.currencyLeftSide; module:Update(); end,
+			checked = function() return Addon.db.global.currencyLeftSide; end,
+			isNotRadio = true,
+		},
+		{
 			text = " ", isTitle = true, notCheckable = true,
 		},
 		{
@@ -466,6 +471,14 @@ function module:GetContextMenuData()
 	return contextMenuData;
 end
 
+function module:GetCurrencyDisplayString(amount, icon)
+	if(not Addon.db.global.currencyLeftSide) then
+		return ("%s %s"):format(BreakUpLargeNumbers(amount), DATA.ICON_PATTERN_12:format(icon));
+	else
+		return ("%s %s"):format(DATA.ICON_PATTERN_12:format(icon), BreakUpLargeNumbers(amount));
+	end
+end
+
 function module:GetText()
 	local data = Addon:GetCurrencyData();
 	local text = "";
@@ -475,7 +488,7 @@ function module:GetText()
 			local name, currentAmount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered, rarity = GetCurrencyInfo(currencyID);
 			
 			if(isDiscovered) then
-				text = strtrim(string.format("%s %s %s", text, BreakUpLargeNumbers(currentAmount), DATA.ICON_PATTERN_12:format(icon)));
+				text = strtrim(string.format("%s %s", text, module:GetCurrencyDisplayString(currentAmount, icon)));
 			end
 		end
 	end

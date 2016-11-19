@@ -64,6 +64,22 @@ function Addon:GetConnectedRealmsName()
 	return table.concat(Addon:GetConnectedRealms(), "-");
 end
 
+function Addon:GetOtherFactionName()
+	local faction = UnitFactionGroup("player");
+	if(faction == "Neutral") then return nil end
+	if(faction == "Alliance") then
+		return "Horde";
+	else
+		return "Alliance";
+	end
+end
+
+function Addon:GetFactionColor(faction)
+	if(faction == "Alliance") then return "3594ff"; end
+	if(faction == "Horde") then return "ef2626"; end
+	return "68b82e";
+end
+
 local CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME;
 function Addon:GetPlayerInformation()
 	if(not CONNECTED_REALM or not HOME_REALM or not PLAYER_FACTION or not PLAYER_NAME) then
@@ -88,6 +104,8 @@ function Addon:OnEnable()
 			onlyGold            = false,
 			shortDisplay        = false,
 			literalEnabled      = false,
+			goldLeftSide        = false,
+			bothFactionsTooltip = false,
 			
 			showToday           = true,
 			showYesterday       = true,
@@ -100,6 +118,7 @@ function Addon:OnEnable()
 			showCharacterCurrencies     = true,
 			hideUnused                  = true,
 			showTextIfEmpty				= true,
+			currencyLeftSide            = false,
 			
 			currencies = {
 				global = {

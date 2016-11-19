@@ -134,36 +134,17 @@ function module:OnEnter(frame, tooltip)
 		tooltip:AddLine(" ");
 	end
 	
-	do
-		local characters = Addon:GetCharacterData();
-		local totalGold = 0;
-		
-		local list_characters = {};
-		for name, data in pairs(characters) do
-			table.insert(list_characters, {name = name, data = data});
-			totalGold = totalGold + data.gold + data.inMail;
-		end
-		
-		table.sort(list_characters, function(a, b)
-			if(a == nil and b == nil) then return false end
-			if(a == nil) then return true end
-			if(b == nil) then return false end
-			
-			return (a.data.gold + a.data.inMail) > (b.data.gold + b.data.inMail);
-		end);
-		
-		for k, data in ipairs(list_characters) do
-			module:SetTooltip(tooltip, data.name, data.data);
-		end
-		
-		if(#list_characters > 1) then
-			tooltip:AddLine(" ")
-			tooltip:AddLine("|cffffdd00Total|r", module:GetCorrectCoinString(totalGold));
-		end
+	local shouldShowBothFactions = Addon.db.global.bothFactionsTooltip and PLAYER_FACTION ~= "Neutral";
+	
+	module:ListFactionOnTooltip(tooltip, PLAYER_FACTION, shouldShowBothFactions);
+	
+	if(shouldShowBothFactions) then
+		local otherFaction = Addon:GetOtherFactionName();
+		module:ListFactionOnTooltip(tooltip, otherFaction, true, true);
 	end
 	
 	if(Addon.db.global.displayHint) then
-		tooltip:AddLine(" ")
+		tooltip:AddLine(" ");
 		tooltip:AddLine("|cffffdd00Right-Click|r", "|cffffffffOpen options menu|r");
 	end
 	
@@ -174,6 +155,54 @@ function module:OnEnter(frame, tooltip)
 	tooltip:SetPoint(point, frame, relative, 0, 0);
 	
 	tooltip:Show();
+end
+
+function module:ListFactionOnTooltip(tooltip, faction, withTitles, useSpacerBefore)
+	if(not tooltip) then return end
+	
+	faction = faction or PLAYER_FACTION;
+	withTitles = withTitles or false;
+	
+	local factionColor = Addon:GetFactionColor(faction);
+	
+	local characters = Addon:GetCharacterData(faction);
+	local totalGold = 0;
+	
+	local list_characters = {};
+	for name, data in pairs(characters) do
+		table.insert(list_characters, {name = name, data = data});
+		totalGold = totalGold + data.gold + data.inMail;
+	end
+	
+	if(#list_characters == 0) then return end
+	
+	table.sort(list_characters, function(a, b)
+		if(a == nil and b == nil) then return false end
+		if(a == nil) then return true end
+		if(b == nil) then return false end
+		
+		return (a.data.gold + a.data.inMail) > (b.data.gold + b.data.inMail);
+	end);
+	
+	if(withTitles) then
+		if(useSpacerBefore) then tooltip:AddLine(" "); end
+		
+		tooltip:AddLine(("|cff%s%s|r"):format(factionColor, faction));
+		tooltip:AddSeparator();
+	end
+	
+	for k, data in ipairs(list_characters) do
+		module:SetTooltip(tooltip, data.name, data.data);
+	end
+	
+	if(#list_characters > 1) then
+		tooltip:AddLine(" ");
+		if(withTitles) then
+			tooltip:AddLine(("|cffffdd00Total (|cff%s%s|cffffdd00)|r"):format(factionColor, faction), module:GetCorrectCoinString(totalGold));
+		else
+			tooltip:AddLine("|cffffdd00Total|r", module:GetCorrectCoinString(totalGold));
+		end
+	end
 end
 
 function module:OnLeave(frame)
@@ -215,6 +244,18 @@ function module:GetContextMenuData()
 			text = "Only show gold",
 			func = function() Addon.db.global.onlyGold = not Addon.db.global.onlyGold; module:Update(); end,
 			checked = function() return Addon.db.global.onlyGold; end,
+			isNotRadio = true,
+		},
+		{
+			text = "Gold icon on the left",
+			func = function() Addon.db.global.goldLeftSide = not Addon.db.global.goldLeftSide; module:Update(); end,
+			checked = function() return Addon.db.global.goldLeftSide; end,
+			isNotRadio = true,
+		},
+		{
+			text = "Show both factions on the tooltip",
+			func = function() Addon.db.global.bothFactionsTooltip = not Addon.db.global.bothFactionsTooltip; module:Update(); end,
+			checked = function() return Addon.db.global.bothFactionsTooltip; end,
 			isNotRadio = true,
 		},
 		{
@@ -507,6 +548,18 @@ function module:GetLiteralCoinString(coin)
 	return strtrim(result);
 end
 
+function module:GetCoinTextureStringPatterns()
+	if(not Addon.db.global.goldLeftSide) then
+		return "%s|TInterface\\MoneyFrame\\UI-GoldIcon:12:12:2:0|t",
+		       "%d|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:2:0|t",
+		       "%d|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:2:0|t"
+	else
+		return "|TInterface\\MoneyFrame\\UI-GoldIcon:12:12:2:0|t %s",
+		       "|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:2:0|t %d",
+		       "|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:2:0|t %d"
+	end
+end
+
 function module:GetCoinTextureString(coin)
 	local coin, sign = module:NormalizeCoinValue(coin)
 	
@@ -514,9 +567,7 @@ function module:GetCoinTextureString(coin)
 	local silver = math.floor((coin % 10000) / 100);
 	local gold 	 = math.floor(coin / 10000);
 	
-	local GOLD 	 = "%s|TInterface\\MoneyFrame\\UI-GoldIcon:12:12:2:0|t";
-	local SILVER = "%d|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:2:0|t";
-	local COPPER = "%d|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:2:0|t";
+	local GOLD, SILVER, COPPER = module:GetCoinTextureStringPatterns();
 	
 	local result = "";
 	
