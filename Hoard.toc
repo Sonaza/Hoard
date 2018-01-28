@@ -1,7 +1,7 @@
-## Interface: 70100
+## Interface: 70300
 ## Title: Hoard
 ## Notes: Character gold and currency display
-## Version: 1.1.4
+## Version: 1.2.0
 ## Author: Sonaza
 ## OptionalDeps: Ace3, LibDataBroker-1.1
 ## SavedVariables: HoardDB

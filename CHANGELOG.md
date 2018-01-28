@@ -1,3 +1,14 @@
+## 1.2.0
+* Added auto slot for currencies. This new slot automatically starts tracking the most recently earned currency that's not already being tracked.
+* TOC bump for patch 7.3.5.
+
+## 1.1.6
+* You can now shift-click items to link them from currency broker tooltip.
+
+## 1.1.5
+* TOC bump for patch 7.2.5.
+* Fixed error that caused some unconnected realms to be treated as connected.
+
 ## 1.1.4
 * Added an option to change gold and currency icon to the left side.
 * Added an option to display gold for both factions in the tooltip.

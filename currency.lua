@@ -63,9 +63,21 @@ function module:Initialize()
 	Addon:RegisterEvent("CURRENCY_DISPLAY_UPDATE");
 	Addon:RegisterEvent("ZONE_CHANGED");
 	Addon:RegisterEvent("ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED");
+	Addon:RegisterEvent("CHAT_MSG_CURRENCY");
 	
 	CONNECTED_REALM, HOME_REALM, PLAYER_FACTION, PLAYER_NAME = Addon:GetPlayerInformation();
 	module:SaveCharacterCurrencies();
+end
+
+function Addon:CHAT_MSG_CURRENCY(event, msg, ...)
+	if(not msg) then return end
+	local currencyID = Addon:GetCurrencyID(msg);
+	
+	if(currencyID and not Addon:IsCurrencyWatched(currencyID)) then
+		local playerData = Addon:GetPersonalCurrencyData();
+		playerData.auto = currencyID;
+		module:Update();
+	end
 end
 
 function module:OnClick(frame, button)
@@ -215,7 +227,7 @@ function module:OnEnter(frame, tooltip)
 					if(not isUnused) then
 						GameTooltip:AddLine("|cff00ff00Shift Right-Click to mark as unused|r");
 					else
-						GameTooltip:AddLine("|cff00ff00Shift Right-Click to remove unused|r");
+						GameTooltip:AddLine("|cff00ff00Shift Right-Click to unmark as unused|r");
 					end
 					
 					GameTooltip:Show();
@@ -239,7 +251,9 @@ function module:OnEnter(frame, tooltip)
 			end);
 				
 			tooltip:SetLineScript(lineIndex, "OnMouseUp", function(self, _, button)
-				if(button == "RightButton" and IsShiftKeyDown()) then
+				if (IsModifiedClick("CHATLINK")) then
+					HandleModifiedItemClick(GetCurrencyListLink(index));
+				elseif(button == "RightButton" and IsShiftKeyDown()) then
 					SetCurrencyUnused(index, isUnused and 0 or 1);
 					module:OnEnter(frame, module.tooltip);
 				end
@@ -396,6 +410,29 @@ function module:GetContextMenuData()
 			text = "Currencies", isTitle = true, notCheckable = true,
 		},
 		{
+			text = "|cffffdd00Auto:|r " .. Addon:GetCurrencyString(playerData.auto, true),
+			hasArrow = true,
+			menuList = {
+				{
+					text = "Auto Slot", isTitle = true, notCheckable = true,
+				},
+				{
+					text = "Enable",
+					func = function() playerData.auto = 0; module:Update(); CloseMenus(); end,
+					checked = function() return playerData.auto ~= false; end,
+					tooltipTitle = "Enable Auto Slot",
+					tooltipText = "Auto slot will automatically display the most recently earned currency that's not already being tracked.",
+					tooltipOnButton = 1,
+				},
+				{
+					text = "Disable",
+					func = function() playerData.auto = false; module:Update(); CloseMenus(); end,
+					checked = function() return playerData.auto == false; end,
+				},
+			},
+			notCheckable = true,
+		},
+		{
 			text = "|cffffdd00Slot 1:|r " .. Addon:GetCurrencyString(data.watched[1]),
 			hasArrow = true,
 			menuList = module:GetCurrencyMenu(1, data.watched),
@@ -481,7 +518,15 @@ end
 
 function module:GetText()
 	local data = Addon:GetCurrencyData();
+	local playerData = Addon:GetPersonalCurrencyData();
 	local text = "";
+	
+	if(playerData.auto ~= false and playerData.auto ~= 0) then
+		local name, currentAmount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered, rarity = GetCurrencyInfo(playerData.auto);
+		if(isDiscovered) then
+			text = strtrim(string.format("%s %s", text, module:GetCurrencyDisplayString(currentAmount, icon)));
+		end
+	end
 	
 	for index, currencyID in ipairs(data.watched) do
 		if(currencyID) then
@@ -529,7 +574,9 @@ function Addon:IsCurrencyWatched(currency)
 	return false;
 end
 
-function Addon:GetCurrencyString(currencyID)
+function Addon:GetCurrencyString(currencyID, isAuto)
+	if(not currencyID and isAuto) then return "|cffd4d4d4Disabled|r" end
+	if(currencyID == 0 and isAuto) then return "|cffd4d4d4Enabled|r" end
 	if(not currencyID) then return "|cffd4d4d4Empty|r" end
 	
 	local name, amount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(currencyID);

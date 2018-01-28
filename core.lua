@@ -53,7 +53,7 @@ end
 function Addon:GetConnectedRealms()
 	local realms = GetAutoCompleteRealms();
 	
-	if(realms) then
+	if(realms and #realms > 1) then
 		return realms;
 	else
 		return { Addon:GetHomeRealm() };
@@ -132,7 +132,8 @@ function Addon:OnEnable()
 				characters = {
 					["*"] = {
 						showPersonal = false,
-						watched = nil,
+						watched      = nil,
+						auto         = 0,
 					},
 				}
 			},
