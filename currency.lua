@@ -70,11 +70,13 @@ function module:Initialize()
 end
 
 function Addon:CHAT_MSG_CURRENCY(event, msg, ...)
+	local playerData = Addon:GetPersonalCurrencyData();
+	if(playerData.auto == false) then return end
+	
 	if(not msg) then return end
 	local currencyID = Addon:GetCurrencyID(msg);
 	
 	if(currencyID and not Addon:IsCurrencyWatched(currencyID)) then
-		local playerData = Addon:GetPersonalCurrencyData();
 		playerData.auto = currencyID;
 		module:Update();
 	end
@@ -418,7 +420,13 @@ function module:GetContextMenuData()
 				},
 				{
 					text = "Enable",
-					func = function() playerData.auto = 0; module:Update(); CloseMenus(); end,
+					func = function()
+						if(playerData.auto == false) then
+							playerData.auto = 0;
+						end
+						module:Update();
+						CloseMenus();
+					end,
 					checked = function() return playerData.auto ~= false; end,
 					tooltipTitle = "Enable Auto Slot",
 					tooltipText = "Auto slot will automatically display the most recently earned currency that's not already being tracked.",

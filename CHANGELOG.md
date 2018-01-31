@@ -1,3 +1,6 @@
+## 1.2.1
+* Fixed auto slot disable not sticking.
+
 ## 1.2.0
 * Added auto slot for currencies. This new slot automatically starts tracking the most recently earned currency that's not already being tracked.
 * TOC bump for patch 7.3.5.
