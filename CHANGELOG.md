@@ -1,4 +1,7 @@
-## 1.2.1
+## 1.2.3
+* Added global disable toggle for auto slot.
+
+## 1.2.2
 * Fixed auto slot disable not sticking.
 
 ## 1.2.0

@@ -128,6 +128,7 @@ function Addon:OnEnable()
 						[3]		= false,
 						[4]		= false,
 					},
+					autoDisabled = false,
 				},
 				characters = {
 					["*"] = {

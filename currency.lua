@@ -71,7 +71,7 @@ end
 
 function Addon:CHAT_MSG_CURRENCY(event, msg, ...)
 	local playerData = Addon:GetPersonalCurrencyData();
-	if(playerData.auto == false) then return end
+	if(playerData.auto == false or Addon.db.global.autoDisabled) then return end
 	
 	if(not msg) then return end
 	local currencyID = Addon:GetCurrencyID(msg);
@@ -437,6 +437,12 @@ function module:GetContextMenuData()
 					func = function() playerData.auto = false; module:Update(); CloseMenus(); end,
 					checked = function() return playerData.auto == false; end,
 				},
+				{
+					text = "Disable for all characters",
+					func = function() Addon.db.global.autoDisabled = not Addon.db.global.autoDisabled; module:Update(); CloseMenus(); end,
+					checked = function() return Addon.db.global.autoDisabled; end,
+					isNotRadio = true,
+				},
 			},
 			notCheckable = true,
 		},
@@ -529,7 +535,7 @@ function module:GetText()
 	local playerData = Addon:GetPersonalCurrencyData();
 	local text = "";
 	
-	if(playerData.auto ~= false and playerData.auto ~= 0) then
+	if(playerData.auto ~= false and playerData.auto ~= 0 and not Addon.db.global.autoDisabled) then
 		local name, currentAmount, icon, earnedThisWeek, weeklyMax, totalMax, isDiscovered, rarity = GetCurrencyInfo(playerData.auto);
 		if(isDiscovered) then
 			text = strtrim(string.format("%s %s", text, module:GetCurrencyDisplayString(currentAmount, icon)));
