@@ -1,7 +1,10 @@
+## 2.0.0
+* Updated for Battle for Azeroth.
+
 ## 1.2.3
 * Added global disable toggle for auto slot.
 
-## 1.2.2
+## 1.2.1
 * Fixed auto slot disable not sticking.
 
 ## 1.2.0
