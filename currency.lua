@@ -331,6 +331,8 @@ function module:GetCurrencyMenu(slotIndex, slotData)
 	
 	local numCurrencies = GetCurrencyListSize();
 	
+	local playerData = Addon:GetPersonalCurrencyData();
+	
 	for index = 1, numCurrencies do
 		local name, isHeader, isExpanded, isUnused, _, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount = GetCurrencyListInfo(index);
 		
@@ -349,7 +351,14 @@ function module:GetCurrencyMenu(slotIndex, slotData)
 			
 			tinsert(menudata, {
 				text = string.format("%s %s", DATA.ICON_PATTERN_12:format(icon), name),
-				func = function() slotData[slotIndex] = currencyID; module:Update(); CloseMenus(); end,
+				func = function()
+					slotData[slotIndex] = currencyID;
+					if (currencyID == playerData.auto) then
+						playerData.auto = 0;
+					end
+					module:Update();
+					CloseMenus();
+				end,
 				checked = function() return isWatched; end,
 				disabled = isWatched and slotData[slotIndex] ~= currencyID,
 			});

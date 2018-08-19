@@ -1,3 +1,6 @@
+## 2.0.1
+* Auto currency display is now reset when setting same currency in the permanent tracker.
+
 ## 2.0.0
 * Updated for Battle for Azeroth.
 
